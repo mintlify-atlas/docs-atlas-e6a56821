@@ -1,0 +1,103 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Ramadan CLI",
+  "projectDescription": "CLI tool to check Sehar and Iftar times in Ramadan anywhere in the world with automatic location detection.",
+  "theme": "almond",
+  "primaryColor": "#81F096",
+  "lightColor": "#81F096",
+  "darkColor": "#39AA54",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Usage",
+            "pages": [
+              "usage/basic-usage",
+              "usage/commands",
+              "usage/configuration",
+              "usage/flags-and-options"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/location-detection",
+              "features/ramadan-calendar",
+              "features/output-modes",
+              "features/custom-first-roza"
+            ]
+          },
+          {
+            "group": "Integration",
+            "pages": [
+              "integration/agent-usage",
+              "integration/json-output",
+              "integration/status-bar"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core API",
+            "pages": [
+              "api/overview",
+              "api/prayer-times",
+              "api/geolocation",
+              "api/configuration"
+            ]
+          },
+          {
+            "group": "Types",
+            "pages": [
+              "api/types"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Automatic location detection with IP provider fallbacks",
+    "Ramadan-focused output with Sehar and Iftar times",
+    "Interactive first-run setup with guided configuration",
+    "Support for 30 days of Ramadan with calendar view",
+    "Multiple output modes: table, JSON, status line",
+    "Country-specific prayer calculation methods and schools",
+    "Custom first Roza date override",
+    "Multiple CLI aliases (roza, ramzan, ramazan, ramadan)"
+  ],
+  "publicApiSurface": [
+    "fetchTimingsByCity",
+    "fetchTimingsByAddress",
+    "fetchTimingsByCoords",
+    "fetchNextPrayer",
+    "fetchCalendarByCity",
+    "fetchCalendarByAddress",
+    "fetchHijriCalendarByCity",
+    "fetchHijriCalendarByAddress",
+    "fetchMethods",
+    "fetchQibla",
+    "guessLocation",
+    "guessCityCountry",
+    "getStoredLocation",
+    "setStoredLocation",
+    "getStoredPrayerSettings",
+    "setStoredMethod",
+    "setStoredSchool",
+    "getRecommendedMethod",
+    "getRecommendedSchool"
+  ]
+}
