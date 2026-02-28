@@ -338,6 +338,62 @@ The following countries default to Hanafi school:
 
 All other countries default to Shafi school.
 
+### shouldApplyRecommendedMethod
+
+Check if a recommended method should be applied based on current and recommended values.
+
+```typescript
+import { shouldApplyRecommendedMethod } from 'ramadan-cli';
+
+// Returns true if current is default (2) or matches recommended
+const shouldApply = shouldApplyRecommendedMethod(2, 1);
+console.log(shouldApply); // true
+
+// Returns false if user has customized to a different method
+const shouldApply2 = shouldApplyRecommendedMethod(3, 1);
+console.log(shouldApply2); // false
+```
+
+<ParamField path="currentMethod" type="number" required>
+  Current method ID
+</ParamField>
+
+<ParamField path="recommendedMethod" type="number" required>
+  Recommended method ID
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if recommendation should be applied
+</ResponseField>
+
+### shouldApplyRecommendedSchool
+
+Check if a recommended school should be applied based on current and recommended values.
+
+```typescript
+import { shouldApplyRecommendedSchool } from 'ramadan-cli';
+
+// Returns true if current is default (0=Shafi) or matches recommended
+const shouldApply = shouldApplyRecommendedSchool(0, 1);
+console.log(shouldApply); // true
+
+// Returns false if user has customized to a different school
+const shouldApply2 = shouldApplyRecommendedSchool(1, 0);
+console.log(shouldApply2); // false
+```
+
+<ParamField path="currentSchool" type="number" required>
+  Current school (0=Shafi, 1=Hanafi)
+</ParamField>
+
+<ParamField path="recommendedSchool" type="number" required>
+  Recommended school
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if recommendation should be applied
+</ResponseField>
+
 ### applyRecommendedSettingsIfUnset
 
 Apply recommended settings only if user hasn't customized them.
