@@ -1,0 +1,488 @@
+---
+title: "JSON Output"
+description: "Use JSON mode for programmatic access to Ramadan timings"
+icon: "brackets-curly"
+---
+
+## Overview
+
+The `--json` flag enables JSON-only output to `stdout`, making ramadan-cli perfect for scripts, automation, and programmatic access. This mode skips all interactive prompts and outputs structured data.
+
+## Basic Usage
+
+```bash
+ramadan-cli --json
+ramadan-cli sf --json
+ramadan-cli "Lahore, Pakistan" --json
+```
+
+<Note>
+JSON mode automatically skips interactive setup and falls back to IP geolocation if no config exists.
+</Note>
+
+## Output Structure
+
+The JSON output follows this structure:
+
+```json
+{
+  "mode": "today",
+  "location": "San Francisco, United States",
+  "hijriYear": 1447,
+  "rows": [
+    {
+      "roza": 1,
+      "sehar": "5:30 AM",
+      "iftar": "7:45 PM",
+      "date": "28-02-2026",
+      "hijri": "1 Ramadan 1447"
+    }
+  ]
+}
+```
+
+### Field Definitions
+
+<ResponseField name="mode" type="string" required>
+  The display mode used:
+  - `"today"` - Single day view (default)
+  - `"all"` - Complete Ramadan month (30 days)
+  - `"number"` - Specific roza number
+</ResponseField>
+
+<ResponseField name="location" type="string" required>
+  The location address used for the query (city, country, or coordinates)
+</ResponseField>
+
+<ResponseField name="hijriYear" type="number" required>
+  The Hijri year for the Ramadan timings
+</ResponseField>
+
+<ResponseField name="rows" type="array" required>
+  Array of Ramadan day objects, each containing:
+  
+  <Expandable title="Row Object Properties">
+    <ResponseField name="roza" type="number">
+      The roza (fast) day number (1-30)
+    </ResponseField>
+    
+    <ResponseField name="sehar" type="string">
+      Sehar (Fajr) time in 12-hour format with AM/PM
+    </ResponseField>
+    
+    <ResponseField name="iftar" type="string">
+      Iftar (Maghrib) time in 12-hour format with AM/PM
+    </ResponseField>
+    
+    <ResponseField name="date" type="string">
+      Gregorian date in DD-MM-YYYY format
+    </ResponseField>
+    
+    <ResponseField name="hijri" type="string">
+      Hijri date in "day month year" format (e.g., "1 Ramadan 1447")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output Modes
+
+### Today Mode (Default)
+
+Shows timings for the current Ramadan day or next upcoming Ramadan:
+
+<CodeGroup>
+```bash Command
+ramadan-cli --json
+```
+
+```json Response
+{
+  "mode": "today",
+  "location": "New York, United States",
+  "hijriYear": 1447,
+  "rows": [
+    {
+      "roza": 1,
+      "sehar": "5:15 AM",
+      "iftar": "6:30 PM",
+      "date": "28-02-2026",
+      "hijri": "1 Ramadan 1447"
+    }
+  ]
+}
+```
+</CodeGroup>
+
+### All Mode
+
+Shows complete Ramadan month (30 days):
+
+<CodeGroup>
+```bash Command
+ramadan-cli --all --json
+```
+
+```json Response
+{
+  "mode": "all",
+  "location": "Dubai, United Arab Emirates",
+  "hijriYear": 1447,
+  "rows": [
+    {
+      "roza": 1,
+      "sehar": "4:45 AM",
+      "iftar": "6:15 PM",
+      "date": "28-02-2026",
+      "hijri": "1 Ramadan 1447"
+    },
+    {
+      "roza": 2,
+      "sehar": "4:44 AM",
+      "iftar": "6:16 PM",
+      "date": "01-03-2026",
+      "hijri": "2 Ramadan 1447"
+    }
+    // ... 28 more days
+  ]
+}
+```
+</CodeGroup>
+
+### Specific Roza Mode
+
+Shows timings for a specific roza day:
+
+<CodeGroup>
+```bash Command
+ramadan-cli --number 15 --json
+```
+
+```json Response
+{
+  "mode": "number",
+  "location": "Lahore, Pakistan",
+  "hijriYear": 1447,
+  "rows": [
+    {
+      "roza": 15,
+      "sehar": "4:30 AM",
+      "iftar": "6:45 PM",
+      "date": "14-03-2026",
+      "hijri": "15 Ramadan 1447"
+    }
+  ]
+}
+```
+</CodeGroup>
+
+## Error Handling
+
+### Error Format
+
+When an error occurs with `--json`, the error payload is written to `stderr` (not `stdout`):
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "LOCATION_DETECTION_FAILED",
+    "message": "Could not detect location. Pass a city like `ramadan-cli \"Lahore\"`."  
+  }
+}
+```
+
+### Error Codes
+
+<Tabs>
+  <Tab title="Common Errors">
+    | Code | Description | Example |
+    |------|-------------|----------|
+    | `LOCATION_DETECTION_FAILED` | Could not detect location | No city specified and IP geo failed |
+    | `INVALID_FLAG_COMBINATION` | Conflicting flags used | `--all` with `--number` |
+    | `INVALID_FIRST_ROZA_DATE` | Invalid date format | Wrong format for `--first-roza-date` |
+  </Tab>
+
+  <Tab title="API Errors">
+    | Code | Description |
+    |------|-------------|
+    | `PRAYER_TIMES_FETCH_FAILED` | Could not fetch prayer times from API |
+    | `RAMADAN_CALENDAR_FETCH_FAILED` | Could not fetch Ramadan calendar |
+    | `ROZA_NOT_FOUND` | Specified roza number not found |
+  </Tab>
+
+  <Tab title="Other Errors">
+    | Code | Description |
+    |------|-------------|
+    | `RAMADAN_CLI_ERROR` | General CLI error |
+    | `UNKNOWN_ERROR` | Unexpected error occurred |
+  </Tab>
+</Tabs>
+
+### Handling Errors in Scripts
+
+<CodeGroup>
+```bash Shell Script
+#!/bin/bash
+
+# Capture stdout and stderr separately
+OUTPUT=$(ramadan-cli --json 2>error.json)
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "Success:"
+    echo "$OUTPUT" | jq '.'
+else
+    echo "Error:"
+    jq '.error' error.json
+    exit 1
+fi
+```
+
+```javascript Node.js
+const { execSync } = require('child_process');
+
+try {
+  const output = execSync('ramadan-cli --json', {
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe']
+  });
+  const data = JSON.parse(output);
+  console.log('Sehar:', data.rows[0].sehar);
+  console.log('Iftar:', data.rows[0].iftar);
+} catch (error) {
+  const stderr = error.stderr.toString();
+  const errorData = JSON.parse(stderr);
+  console.error('Error:', errorData.error.message);
+  process.exit(1);
+}
+```
+
+```python Python
+import json
+import subprocess
+import sys
+
+try:
+    result = subprocess.run(
+        ['ramadan-cli', '--json'],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    data = json.loads(result.stdout)
+    print(f"Sehar: {data['rows'][0]['sehar']}")
+    print(f"Iftar: {data['rows'][0]['iftar']}")
+except subprocess.CalledProcessError as e:
+    error_data = json.loads(e.stderr)
+    print(f"Error: {error_data['error']['message']}", file=sys.stderr)
+    sys.exit(1)
+```
+</CodeGroup>
+
+## Parsing Examples
+
+### Extract Specific Fields
+
+<CodeGroup>
+```bash Today's Iftar Time
+ramadan-cli --json | jq -r '.rows[0].iftar'
+# Output: 7:45 PM
+```
+
+```bash Location
+ramadan-cli --json | jq -r '.location'
+# Output: San Francisco, United States
+```
+
+```bash All Sehar Times
+ramadan-cli --all --json | jq -r '.rows[].sehar'
+# Output: Multiple lines of sehar times
+```
+
+```bash Specific Roza Date
+ramadan-cli --number 10 --json | jq -r '.rows[0].date'
+# Output: 09-03-2026
+```
+</CodeGroup>
+
+### Complex Queries
+
+<CodeGroup>
+```bash Find Earliest Sehar
+ramadan-cli --all --json | jq -r '[.rows[].sehar] | min'
+```
+
+```bash Count Days
+ramadan-cli --all --json | jq '.rows | length'
+```
+
+```bash Filter by Roza Number
+ramadan-cli --all --json | jq '.rows[] | select(.roza == 15)'
+```
+
+```bash Format as CSV
+ramadan-cli --all --json | jq -r '.rows[] | [.roza, .sehar, .iftar, .date] | @csv'
+```
+</CodeGroup>
+
+## Integration Examples
+
+### Shell Script Integration
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# Fetch Ramadan data
+DATA=$(ramadan-cli --json 2>/dev/null || echo '{"rows":[]}')
+
+# Check if we have data
+IF_COUNT=$(echo "$DATA" | jq '.rows | length')
+
+if [ "$IF_COUNT" -eq 0 ]; then
+    echo "No Ramadan data available"
+    exit 1
+fi
+
+# Extract first row
+ROZA=$(echo "$DATA" | jq -r '.rows[0].roza')
+SEHAR=$(echo "$DATA" | jq -r '.rows[0].sehar')
+IFTAR=$(echo "$DATA" | jq -r '.rows[0].iftar')
+
+echo "Roza $ROZA"
+echo "Sehar: $SEHAR"
+echo "Iftar: $IFTAR"
+```
+
+### API Wrapper
+
+```javascript
+// ramadan-api.js
+const { execSync } = require('child_process');
+
+class RamadanAPI {
+  static async getToday(city = null) {
+    const cmd = city ? `ramadan-cli "${city}" --json` : 'ramadan-cli --json';
+    try {
+      const output = execSync(cmd, { encoding: 'utf8' });
+      return JSON.parse(output);
+    } catch (error) {
+      const errorData = JSON.parse(error.stderr.toString());
+      throw new Error(errorData.error.message);
+    }
+  }
+
+  static async getAll(city = null) {
+    const cmd = city ? `ramadan-cli "${city}" --all --json` : 'ramadan-cli --all --json';
+    try {
+      const output = execSync(cmd, { encoding: 'utf8' });
+      return JSON.parse(output);
+    } catch (error) {
+      const errorData = JSON.parse(error.stderr.toString());
+      throw new Error(errorData.error.message);
+    }
+  }
+
+  static async getRoza(number, city = null) {
+    const cmd = city 
+      ? `ramadan-cli "${city}" --number ${number} --json`
+      : `ramadan-cli --number ${number} --json`;
+    try {
+      const output = execSync(cmd, { encoding: 'utf8' });
+      return JSON.parse(output);
+    } catch (error) {
+      const errorData = JSON.parse(error.stderr.toString());
+      throw new Error(errorData.error.message);
+    }
+  }
+}
+
+module.exports = RamadanAPI;
+```
+
+## Command Combinations
+
+### With Location Override
+
+```bash
+# One-off city query
+ramadan-cli "Istanbul, Turkey" --json
+ramadan-cli cairo --json
+ramadan-cli sf --all --json
+```
+
+### With Custom First Roza Date
+
+```bash
+# Set custom start date
+ramadan-cli --first-roza-date 2026-02-19 --json
+ramadan-cli --first-roza-date 2026-02-19 --all --json
+```
+
+### Combined with Config
+
+```bash
+# Configure once
+ramadan-cli config --city "London" --country "United Kingdom"
+
+# Use JSON output with saved config
+ramadan-cli --json
+ramadan-cli --all --json
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always Parse stderr for Errors">
+    Success output goes to `stdout`, errors to `stderr`:
+
+    ```bash
+    OUTPUT=$(ramadan-cli --json 2>error.json)
+    if [ $? -ne 0 ]; then
+        jq '.error' error.json
+    fi
+    ```
+  </Accordion>
+
+  <Accordion title="Use jq for Parsing">
+    `jq` is the recommended tool for parsing JSON output:
+
+    ```bash
+    ramadan-cli --json | jq -r '.rows[0].iftar'
+    ```
+  </Accordion>
+
+  <Accordion title="Handle Missing Data Gracefully">
+    Check array lengths before accessing:
+
+    ```bash
+    COUNT=$(ramadan-cli --json | jq '.rows | length')
+    if [ "$COUNT" -gt 0 ]; then
+        # Safe to access .rows[0]
+    fi
+    ```
+  </Accordion>
+
+  <Accordion title="Cache API Responses">
+    Prayer times don't change frequently. Cache the JSON output:
+
+    ```bash
+    CACHE_FILE="/tmp/ramadan-cache.json"
+    if [ ! -f "$CACHE_FILE" ] || [ $(find "$CACHE_FILE" -mmin +60) ]; then
+        ramadan-cli --all --json > "$CACHE_FILE"
+    fi
+    cat "$CACHE_FILE"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="Agent Usage" icon="robot" href="/integration/agent-usage">
+    Learn about using ramadan-cli as an agent skill
+  </Card>
+  <Card title="Status Line Mode" icon="rectangle-terminal" href="/integration/status-bar">
+    Single-line output for status bars
+  </Card>
+</CardGroup>

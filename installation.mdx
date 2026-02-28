@@ -1,0 +1,292 @@
+---
+title: Installation
+description: Install Ramadan CLI using npm, yarn, pnpm, bun, or run directly with npx
+---
+
+# Installation
+
+Ramadan CLI can be installed globally on your system or run on-demand with npx. Choose the method that works best for your workflow.
+
+## Requirements
+
+<Note>
+  Ramadan CLI requires **Node.js 20 or higher**. Check your version with `node --version`.
+</Note>
+
+## Quick Run (No Install)
+
+The fastest way to try Ramadan CLI is with npx:
+
+```bash
+npx ramadan-cli
+```
+
+This will download and run the latest version without installing anything globally. Perfect for one-time use or trying it out.
+
+## Global Installation
+
+For regular use, install Ramadan CLI globally to access it from anywhere in your terminal.
+
+<CodeGroup>
+
+```bash npm
+npm install -g ramadan-cli@latest
+```
+
+```bash yarn
+yarn global add ramadan-cli@latest
+```
+
+```bash pnpm
+pnpm add -g ramadan-cli@latest
+```
+
+```bash bun
+bun add -g ramadan-cli@latest
+```
+
+</CodeGroup>
+
+<Tip>
+  After global installation, you can use any of the CLI aliases: `roza`, `ramadan`, `ramzan`, `ramazan`, or `ramadan-cli`.
+</Tip>
+
+## Verify Installation
+
+Check that Ramadan CLI is installed correctly:
+
+```bash
+ramadan-cli --version
+# or
+roza --version
+```
+
+You should see the version number (e.g., `6.1.0`).
+
+## Available Aliases
+
+After installation, you can use any of these commands interchangeably:
+
+<CardGroup cols={2}>
+  <Card title="roza" icon="moon">
+    ```bash
+    roza
+    ```
+    Shortest and most common
+  </Card>
+  <Card title="ramadan-cli" icon="terminal">
+    ```bash
+    ramadan-cli
+    ```
+    Full package name
+  </Card>
+  <Card title="ramadan" icon="star-and-crescent">
+    ```bash
+    ramadan
+    ```
+    Simple alternative
+  </Card>
+  <Card title="ramzan / ramazan" icon="moon-stars">
+    ```bash
+    ramzan
+    # or
+    ramazan
+    ```
+    Regional variations
+  </Card>
+</CardGroup>
+
+<Note>
+  All aliases run the exact same program. Use whichever feels most natural to you.
+</Note>
+
+## Agent Installation
+
+If you're using Ramadan CLI with AI coding agents, you can install it as a skill package:
+
+```bash
+npx skills add ahmadawais/ramadan-cli
+```
+
+This makes Ramadan CLI available to your agent for automated tasks.
+
+## Update to Latest Version
+
+To update an existing global installation:
+
+<CodeGroup>
+
+```bash npm
+npm update -g ramadan-cli
+```
+
+```bash yarn
+yarn global upgrade ramadan-cli
+```
+
+```bash pnpm
+pnpm update -g ramadan-cli
+```
+
+```bash bun
+bun update -g ramadan-cli
+```
+
+</CodeGroup>
+
+## Uninstall
+
+To remove Ramadan CLI from your system:
+
+<CodeGroup>
+
+```bash npm
+npm uninstall -g ramadan-cli
+```
+
+```bash yarn
+yarn global remove ramadan-cli
+```
+
+```bash pnpm
+pnpm remove -g ramadan-cli
+```
+
+```bash bun
+bun remove -g ramadan-cli
+```
+
+</CodeGroup>
+
+<Tip>
+  This only removes the program. Your saved configuration (location, settings) is stored separately. Use `ramadan-cli reset` to clear your config before uninstalling.
+</Tip>
+
+## Installation Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Command not found after installation" icon="circle-exclamation">
+    If you see `command not found: roza` after installing:
+
+    1. **Check your PATH**: Global npm packages need to be in your PATH
+       ```bash
+       npm config get prefix
+       ```
+       The `bin` directory inside this path should be in your PATH.
+
+    2. **Restart your terminal**: Close and reopen your terminal window.
+
+    3. **Use npx instead**: If PATH issues persist, use npx:
+       ```bash
+       npx ramadan-cli
+       ```
+  </Accordion>
+
+  <Accordion title="Permission errors on macOS/Linux" icon="shield">
+    If you get `EACCES` permission errors:
+
+    **Option 1: Use a Node version manager (recommended)**
+    ```bash
+    # Using nvm
+    nvm install 20
+    nvm use 20
+    npm install -g ramadan-cli
+    ```
+
+    **Option 2: Fix npm permissions**
+    ```bash
+    mkdir ~/.npm-global
+    npm config set prefix '~/.npm-global'
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+    source ~/.bashrc
+    npm install -g ramadan-cli
+    ```
+
+    **Avoid using sudo**: Using `sudo npm install -g` can cause permission issues later.
+  </Accordion>
+
+  <Accordion title="Node.js version too old" icon="clock">
+    Ramadan CLI requires Node.js 20 or higher. To upgrade:
+
+    **Using nvm (recommended)**:
+    ```bash
+    nvm install 20
+    nvm use 20
+    nvm alias default 20
+    ```
+
+    **Direct download**: Visit [nodejs.org](https://nodejs.org/) and download the LTS version.
+  </Accordion>
+
+  <Accordion title="Slow installation" icon="hourglass">
+    If installation is taking too long:
+
+    1. **Check your internet connection**: npm needs to download packages
+    2. **Try a different registry**: Some regions have faster mirrors
+       ```bash
+       npm config set registry https://registry.npmjs.org/
+       ```
+    3. **Clear npm cache**:
+       ```bash
+       npm cache clean --force
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Platform-Specific Notes
+
+<Tabs>
+  <Tab title="macOS">
+    **Recommended setup**:
+    ```bash
+    # Install Node.js with Homebrew (if not already installed)
+    brew install node@20
+    
+    # Install Ramadan CLI
+    npm install -g ramadan-cli
+    ```
+
+    The CLI works great with macOS terminal apps like Terminal.app, iTerm2, and Warp.
+  </Tab>
+
+  <Tab title="Linux">
+    **Recommended setup**:
+    ```bash
+    # Using nvm (recommended)
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+    source ~/.bashrc
+    nvm install 20
+    
+    # Install Ramadan CLI
+    npm install -g ramadan-cli
+    ```
+
+    Works with all Linux distributions and terminal emulators.
+  </Tab>
+
+  <Tab title="Windows">
+    **Recommended setup**:
+    1. Download and install Node.js 20+ from [nodejs.org](https://nodejs.org/)
+    2. Open PowerShell or Command Prompt
+    3. Install Ramadan CLI:
+       ```bash
+       npm install -g ramadan-cli
+       ```
+
+    **Windows Terminal users**: The CLI displays colors and Unicode properly in Windows Terminal, PowerShell, and WSL.
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+Now that you have Ramadan CLI installed, let's run it for the first time:
+
+<Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+  Learn how to run your first command and complete the interactive setup
+</Card>
+
+---
+
+<Tip>
+  Having issues? Check the [troubleshooting section](#installation-troubleshooting) above or open an issue on [GitHub](https://github.com/ahmadawais/ramadan-cli/issues).
+</Tip>

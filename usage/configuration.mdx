@@ -1,0 +1,654 @@
+---
+title: 'Configuration'
+description: 'How to configure location, prayer calculation settings, and custom overrides'
+icon: 'gear'
+---
+
+## Overview
+
+Ramadan CLI saves your configuration to avoid re-entering location and prayer settings every time. Configuration includes:
+
+- **Location**: City, country, latitude, longitude
+- **Prayer Settings**: Calculation method, juristic school, timezone
+- **Custom Overrides**: First roza date (optional)
+
+## First-Run Setup
+
+When you run the CLI for the first time in a terminal (TTY), you'll see an interactive setup:
+
+```bash
+roza
+```
+
+### Interactive Setup Flow
+
+The setup uses [Clack](https://github.com/natemoo-re/clack) prompts to guide you through configuration:
+
+1. **Location Detection**
+   - Automatically detects your location via IP geolocation
+   - Shows detected city and country
+   - Asks for confirmation
+   - Allows manual entry if auto-detection fails
+
+2. **Calculation Method**
+   - Recommends a method based on your country
+   - Shows available methods (0-23)
+   - You can accept recommendation or choose manually
+
+3. **Juristic School**
+   - Recommends school based on your country
+   - Options: Shafi (0) or Hanafi (1)
+   - Affects Asr prayer time calculation
+
+4. **Timezone**
+   - Auto-detects timezone from location
+   - Can be manually set if needed
+   - Ensures accurate countdown times
+
+### Auto-Detection
+
+The CLI uses multiple IP geolocation providers with fallbacks:
+
+```bash
+# First run attempts auto-detection
+roza
+```
+
+If auto-detection succeeds:
+```
+✔ Detected location: San Francisco, United States
+  Use this location? (y/n)
+```
+
+If auto-detection fails:
+```
+✖ Could not auto-detect location
+  Please enter your city manually
+```
+
+### When Interactive Setup Runs
+
+<Tabs>
+  <Tab title="Runs">
+    Interactive setup **runs** when:
+    - First time using the CLI
+    - After `roza reset`
+    - After `roza config --clear`
+    - Running in a TTY (terminal)
+    - No saved configuration exists
+  </Tab>
+  <Tab title="Skips">
+    Interactive setup **skips** when:
+    - Configuration already exists
+    - Using `--json` flag
+    - Using `--status` flag
+    - Not running in a TTY (scripts, pipes)
+    - City is passed as argument or flag
+  </Tab>
+</Tabs>
+
+<Note>
+Passing a city as an argument temporarily bypasses your saved config for that run only.
+</Note>
+
+---
+
+## Non-Interactive Configuration
+
+Use the `config` command to manage settings without prompts.
+
+### Setting Configuration
+
+```bash
+roza config [options]
+```
+
+**Example: Complete Setup**
+```bash
+roza config \
+  --city "San Francisco" \
+  --country "United States" \
+  --latitude 37.7749 \
+  --longitude -122.4194 \
+  --method 2 \
+  --school 0 \
+  --timezone "America/Los_Angeles"
+```
+
+**Output:**
+```
+Configuration updated.
+```
+
+### Viewing Configuration
+
+```bash
+roza config --show
+```
+
+**Example Output:**
+```
+Current configuration:
+  City: San Francisco
+  Country: United States
+  Latitude: 37.7749
+  Longitude: -122.4194
+  Method: 2
+  School: 0
+  Timezone: America/Los_Angeles
+  First Roza Date: 2026-02-19
+```
+
+### Updating Specific Settings
+
+Update individual settings while keeping others:
+
+```bash
+# Change only the calculation method
+roza config --method 15
+
+# Update city and country
+roza config --city "Lahore" --country "Pakistan"
+
+# Change timezone
+roza config --timezone "Asia/Karachi"
+```
+
+### Clearing Configuration
+
+```bash
+roza config --clear
+```
+
+Or use the reset command:
+```bash
+roza reset
+```
+
+Both commands clear all saved settings.
+
+---
+
+## Configuration Options
+
+### Location Settings
+
+<ParamField path="city" type="string">
+  City name for prayer time calculation
+  
+  **Examples:**
+  - `"San Francisco"`
+  - `"Lahore"`
+  - `"Vancouver"`
+  
+  **Set via:**
+  ```bash
+  roza config --city "San Francisco"
+  ```
+</ParamField>
+
+<ParamField path="country" type="string">
+  Country name for prayer time calculation
+  
+  **Examples:**
+  - `"United States"`
+  - `"Pakistan"`
+  - `"Canada"`
+  
+  **Set via:**
+  ```bash
+  roza config --country "United States"
+  ```
+</ParamField>
+
+<ParamField path="latitude" type="number">
+  Geographic latitude (-90 to 90)
+  
+  **Examples:**
+  - `37.7749` (San Francisco)
+  - `31.5497` (Lahore)
+  - `49.2827` (Vancouver)
+  
+  **Set via:**
+  ```bash
+  roza config --latitude 37.7749
+  ```
+</ParamField>
+
+<ParamField path="longitude" type="number">
+  Geographic longitude (-180 to 180)
+  
+  **Examples:**
+  - `-122.4194` (San Francisco)
+  - `74.3436` (Lahore)
+  - `-123.1207` (Vancouver)
+  
+  **Set via:**
+  ```bash
+  roza config --longitude -122.4194
+  ```
+</ParamField>
+
+### Prayer Calculation Settings
+
+<ParamField path="method" type="number">
+  Calculation method ID (0-23)
+  
+  Determines how Fajr and Isha times are calculated. Each Islamic organization uses different angles.
+  
+  **Common Methods:**
+  - `0` - Shia Ithna-Ashari
+  - `1` - University of Islamic Sciences, Karachi
+  - `2` - Islamic Society of North America (ISNA)
+  - `3` - Muslim World League
+  - `4` - Umm Al-Qura University, Makkah
+  - `5` - Egyptian General Authority of Survey
+  - `15` - Institute of Geophysics, University of Tehran
+  
+  See [Aladhan API Methods](https://aladhan.com/prayer-times-api#methods) for complete list.
+  
+  **Set via:**
+  ```bash
+  roza config --method 2
+  ```
+</ParamField>
+
+<ParamField path="school" type="number">
+  Juristic school for Asr calculation (0 or 1)
+  
+  **Values:**
+  - `0` - Shafi, Maliki, Hanbali, Jafari (standard)
+  - `1` - Hanafi (earlier Asr time)
+  
+  **Set via:**
+  ```bash
+  roza config --school 0
+  ```
+</ParamField>
+
+<ParamField path="timezone" type="string">
+  IANA timezone identifier
+  
+  Ensures accurate countdowns and times for your location.
+  
+  **Examples:**
+  - `America/Los_Angeles`
+  - `America/New_York`
+  - `Asia/Karachi`
+  - `Asia/Dubai`
+  - `Europe/London`
+  - `America/Vancouver`
+  
+  **Set via:**
+  ```bash
+  roza config --timezone "America/Los_Angeles"
+  ```
+</ParamField>
+
+---
+
+## Custom First Roza Date
+
+By default, Ramadan CLI uses the Hijri calendar from the Aladhan API to determine Ramadan dates. You can override this with a custom first roza date.
+
+### Setting Custom Date
+
+```bash
+roza --first-roza-date 2026-02-19
+```
+
+This setting persists across runs:
+
+```bash
+# Set custom date
+roza --first-roza-date 2026-02-19
+
+# Future runs use custom date
+roza
+roza --all
+roza -n 15
+```
+
+### Clearing Custom Date
+
+Revert to API-provided Ramadan dates:
+
+```bash
+roza --clear-first-roza-date
+```
+
+### Date Format
+
+Must use ISO 8601 date format:
+
+```
+YYYY-MM-DD
+```
+
+**Valid Examples:**
+- `2026-02-19`
+- `2026-03-01`
+- `2027-02-08`
+
+**Invalid Examples:**
+- `19-02-2026` ❌
+- `02/19/2026` ❌
+- `2026/02/19` ❌
+
+### Use Cases
+
+<Tabs>
+  <Tab title="Local Moonsighting">
+    Your local community starts Ramadan based on local moonsighting:
+    ```bash
+    # API says March 1, but local moonsighting confirms February 28
+    roza --first-roza-date 2026-02-28
+    ```
+  </Tab>
+  <Tab title="Different Calendar">
+    Following a specific country's calendar:
+    ```bash
+    # Following Saudi Arabia's announcement
+    roza --first-roza-date 2026-03-01
+    ```
+  </Tab>
+  <Tab title="Testing">
+    Testing CLI with specific dates:
+    ```bash
+    roza --first-roza-date 2026-02-19 --all
+    ```
+  </Tab>
+</Tabs>
+
+### How It Works
+
+When a custom first roza date is set:
+
+1. Roza 1 = Your specified date
+2. Roza 2 = Your specified date + 1 day
+3. Roza 3 = Your specified date + 2 days
+4. ... and so on for all 30 days
+
+The CLI fetches prayer times for each calculated date from the API.
+
+<Warning>
+The custom date takes precedence over the API's Hijri calendar. Make sure your date is accurate!
+</Warning>
+
+---
+
+## Country-Aware Recommendations
+
+Ramadan CLI automatically recommends calculation methods and schools based on your country.
+
+### How Recommendations Work
+
+```bash
+roza "Lahore, Pakistan"
+```
+
+The CLI:
+1. Detects country is Pakistan
+2. Recommends method 1 (University of Islamic Sciences, Karachi)
+3. Recommends school 1 (Hanafi)
+4. Auto-applies recommendations if using default settings
+
+### When Recommendations Apply
+
+<Tabs>
+  <Tab title="Auto-Applied">
+    Recommendations **auto-apply** when:
+    - Using default/unset method or school
+    - First-run interactive setup
+    - No explicit config override
+    
+    ```bash
+    # Fresh setup, auto-applies Pakistan recommendations
+    roza "Lahore, Pakistan"
+    ```
+  </Tab>
+  <Tab title="Not Applied">
+    Recommendations **don't apply** when:
+    - You've explicitly set method/school via config
+    - Your saved config has specific values
+    
+    ```bash
+    # Your saved method 2 is preserved
+    roza config --method 2
+    roza "Lahore"  # Uses method 2, not Pakistan's method 1
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+You can always override recommendations by explicitly setting your preferred method and school in the config.
+</Tip>
+
+---
+
+## Configuration Precedence
+
+Ramadan CLI resolves configuration in this order (highest to lowest priority):
+
+1. **Command-line arguments/flags**
+   ```bash
+   roza "San Francisco" --first-roza-date 2026-02-19
+   ```
+
+2. **Saved configuration**
+   ```bash
+   # Uses saved config
+   roza
+   ```
+
+3. **Auto-detected location**
+   ```bash
+   # No config, attempts IP geolocation
+   roza
+   ```
+
+4. **Interactive setup** (if TTY available)
+   ```bash
+   # Prompts for configuration
+   roza
+   ```
+
+5. **Error** (if all else fails)
+   ```
+   Could not detect location. Pass a city like `ramadan-cli "Lahore"`.
+   ```
+
+### Examples
+
+<CodeGroup>
+
+```bash Saved Config
+# Configuration exists
+roza config --city "San Francisco"
+
+# Uses saved config
+roza
+```
+
+```bash One-Off Override
+# Saved config: San Francisco
+roza config --city "San Francisco"
+
+# Temporarily use Lahore (doesn't save)
+roza "Lahore"
+
+# Back to saved config
+roza
+```
+
+```bash Flag Priority
+# Both provided - flag wins
+roza --first-roza-date 2026-02-19 --clear-first-roza-date
+# Result: Custom date is cleared
+```
+
+</CodeGroup>
+
+---
+
+## Configuration Storage
+
+Configuration is stored in a local file on your system.
+
+### Default Location
+
+- **macOS/Linux**: `~/.config/ramadan-cli/config.json`
+- **Windows**: `%APPDATA%\ramadan-cli\config.json`
+
+### Custom Storage Location
+
+Override the storage directory:
+
+```bash
+export RAMADAN_CLI_CONFIG_DIR="/custom/path"
+roza config --show
+```
+
+**Use Cases:**
+- Testing with isolated configs
+- Multiple user profiles
+- Agent skill packages
+- CI/CD environments
+
+### What's Stored
+
+The config file contains:
+
+```json
+{
+  "city": "San Francisco",
+  "country": "United States",
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "method": 2,
+  "school": 0,
+  "timezone": "America/Los_Angeles",
+  "firstRozaDate": "2026-02-19"
+}
+```
+
+<Note>
+The config file is created automatically. You don't need to create or edit it manually.
+</Note>
+
+---
+
+## Configuration for Different Use Cases
+
+### Personal Use
+
+```bash
+# First run - interactive setup
+roza
+
+# Check/update as needed
+roza config --show
+roza config --method 15
+```
+
+### Scripts and Automation
+
+```bash
+# Non-interactive setup
+roza config --city "San Francisco" --country "United States" --method 2
+
+# Use JSON output
+roza --json
+```
+
+### CI/CD Environments
+
+```bash
+# Isolated config directory
+export RAMADAN_CLI_CONFIG_DIR="$GITHUB_WORKSPACE/.ramadan-cli"
+
+# Setup
+roza config --city "Lahore" --country "Pakistan"
+
+# Use in pipeline
+roza --json | jq '.rows[0].iftar'
+```
+
+### Status Bars (tmux, i3, waybar)
+
+```bash
+# Setup once
+roza config --city "Vancouver" --country "Canada"
+
+# Use in status bar config
+roza -s
+```
+
+### Coding Agents
+
+```bash
+# Agent-specific config directory
+export RAMADAN_CLI_CONFIG_DIR="$HOME/.ai-agent/ramadan-cli"
+
+# Setup for agent
+roza config --city "Lahore" --country "Pakistan"
+
+# Agent can call
+roza --status
+roza --json
+```
+
+---
+
+## Troubleshooting Configuration
+
+### Check Current Configuration
+
+```bash
+roza config --show
+```
+
+### Test Different Locations
+
+```bash
+# Don't modify saved config, just test
+roza "Lahore"
+roza "San Francisco"
+roza "Vancouver"
+```
+
+### Reset and Reconfigure
+
+```bash
+# Clear everything
+roza reset
+
+# Start fresh
+roza config --city "Your City" --country "Your Country"
+```
+
+### Verify Configuration Works
+
+```bash
+# Check config
+roza config --show
+
+# Test main command
+roza
+
+# Test with all days
+roza --all
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Commands" icon="terminal" href="/usage/commands">
+    Learn about all available commands
+  </Card>
+  <Card title="Flags and Options" icon="flag" href="/usage/flags-and-options">
+    Complete reference of command-line flags
+  </Card>
+</CardGroup>

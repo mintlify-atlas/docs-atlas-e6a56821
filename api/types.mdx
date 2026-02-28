@@ -1,0 +1,655 @@
+---
+title: 'Types'
+description: 'TypeScript interfaces and type definitions'
+---
+
+## Overview
+
+Ramadan CLI is written in TypeScript and exports all type definitions. All API responses are validated at runtime using [Zod](https://zod.dev) schemas.
+
+## Prayer Data Types
+
+### PrayerTimings
+
+Contains all prayer times for a day.
+
+```typescript
+interface PrayerTimings {
+  readonly Fajr: string;
+  readonly Sunrise: string;
+  readonly Dhuhr: string;
+  readonly Asr: string;
+  readonly Sunset: string;
+  readonly Maghrib: string;
+  readonly Isha: string;
+  readonly Imsak: string;
+  readonly Midnight: string;
+  readonly Firstthird: string;
+  readonly Lastthird: string;
+}
+```
+
+<ResponseField name="Fajr" type="string">
+  Fajr prayer time (e.g., "05:30")
+</ResponseField>
+
+<ResponseField name="Sunrise" type="string">
+  Sunrise time (not a prayer)
+</ResponseField>
+
+<ResponseField name="Dhuhr" type="string">
+  Dhuhr (midday) prayer time
+</ResponseField>
+
+<ResponseField name="Asr" type="string">
+  Asr (afternoon) prayer time
+</ResponseField>
+
+<ResponseField name="Sunset" type="string">
+  Sunset time (not a prayer)
+</ResponseField>
+
+<ResponseField name="Maghrib" type="string">
+  Maghrib prayer time (immediately after sunset)
+</ResponseField>
+
+<ResponseField name="Isha" type="string">
+  Isha (night) prayer time
+</ResponseField>
+
+<ResponseField name="Imsak" type="string">
+  Imsak time (10 minutes before Fajr, used in Ramadan)
+</ResponseField>
+
+<ResponseField name="Midnight" type="string">
+  Islamic midnight (midpoint between sunset and sunrise)
+</ResponseField>
+
+<ResponseField name="Firstthird" type="string">
+  End of first third of the night
+</ResponseField>
+
+<ResponseField name="Lastthird" type="string">
+  Start of last third of the night
+</ResponseField>
+
+### PrayerData
+
+Complete prayer data response from the API.
+
+```typescript
+interface PrayerData {
+  readonly timings: PrayerTimings;
+  readonly date: {
+    readonly readable: string;
+    readonly timestamp: string;
+    readonly hijri: HijriDate;
+    readonly gregorian: GregorianDate;
+  };
+  readonly meta: PrayerMeta;
+}
+```
+
+<ResponseField name="timings" type="PrayerTimings">
+  All prayer times for the day
+</ResponseField>
+
+<ResponseField name="date" type="object">
+  Date information
+  
+  <Expandable title="properties">
+    <ResponseField name="readable" type="string">
+      Human-readable date (e.g., "15 Mar 2024")
+    </ResponseField>
+    
+    <ResponseField name="timestamp" type="string">
+      Unix timestamp as string
+    </ResponseField>
+    
+    <ResponseField name="hijri" type="HijriDate">
+      Hijri (Islamic) date information
+    </ResponseField>
+    
+    <ResponseField name="gregorian" type="GregorianDate">
+      Gregorian date information
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="meta" type="PrayerMeta">
+  Calculation metadata (method, school, coordinates, timezone)
+</ResponseField>
+
+### NextPrayerData
+
+Extends `PrayerData` with next prayer information.
+
+```typescript
+interface NextPrayerData {
+  readonly timings: PrayerTimings;
+  readonly date: PrayerData['date'];
+  readonly meta: PrayerMeta;
+  readonly nextPrayer: string;
+  readonly nextPrayerTime: string;
+}
+```
+
+<ResponseField name="nextPrayer" type="string">
+  Name of next prayer (e.g., "Asr", "Maghrib")
+</ResponseField>
+
+<ResponseField name="nextPrayerTime" type="string">
+  Time of next prayer (e.g., "16:30")
+</ResponseField>
+
+### PrayerMeta
+
+Metadata about prayer time calculation.
+
+```typescript
+interface PrayerMeta {
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly timezone: string;
+  readonly method: {
+    readonly id: number;
+    readonly name: string;
+  };
+  readonly school:
+    | {
+        readonly id: number;
+        readonly name: string;
+      }
+    | string;
+}
+```
+
+<ResponseField name="latitude" type="number">
+  Latitude used for calculation
+</ResponseField>
+
+<ResponseField name="longitude" type="number">
+  Longitude used for calculation
+</ResponseField>
+
+<ResponseField name="timezone" type="string">
+  IANA timezone string
+</ResponseField>
+
+<ResponseField name="method" type="object">
+  Calculation method information
+  
+  <Expandable title="properties">
+    <ResponseField name="id" type="number">
+      Method ID (0-23)
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Method name (e.g., "University of Islamic Sciences, Karachi")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="school" type="object | string">
+  Asr school information (may be string or object)
+</ResponseField>
+
+## Date Types
+
+### HijriDate
+
+Hijri (Islamic) calendar date.
+
+```typescript
+interface HijriDate {
+  readonly date: string;
+  readonly day: string;
+  readonly month: {
+    readonly number: number;
+    readonly en: string;
+    readonly ar: string;
+  };
+  readonly year: string;
+  readonly weekday: {
+    readonly en: string;
+    readonly ar: string;
+  };
+}
+```
+
+<ResponseField name="date" type="string">
+  Full date string (e.g., "15-09-1445")
+</ResponseField>
+
+<ResponseField name="day" type="string">
+  Day of month (e.g., "15")
+</ResponseField>
+
+<ResponseField name="month" type="object">
+  <Expandable title="properties">
+    <ResponseField name="number" type="number">
+      Month number (1-12, 9 = Ramadan)
+    </ResponseField>
+    
+    <ResponseField name="en" type="string">
+      English month name (e.g., "Ramadan")
+    </ResponseField>
+    
+    <ResponseField name="ar" type="string">
+      Arabic month name (e.g., "رَمَضان")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="year" type="string">
+  Hijri year (e.g., "1445")
+</ResponseField>
+
+<ResponseField name="weekday" type="object">
+  <Expandable title="properties">
+    <ResponseField name="en" type="string">
+      English weekday name
+    </ResponseField>
+    
+    <ResponseField name="ar" type="string">
+      Arabic weekday name
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### GregorianDate
+
+Gregorian calendar date.
+
+```typescript
+interface GregorianDate {
+  readonly date: string;
+  readonly day: string;
+  readonly month: {
+    readonly number: number;
+    readonly en: string;
+  };
+  readonly year: string;
+  readonly weekday: {
+    readonly en: string;
+  };
+}
+```
+
+<ResponseField name="date" type="string">
+  Full date string (e.g., "15-03-2024")
+</ResponseField>
+
+<ResponseField name="day" type="string">
+  Day of month (e.g., "15")
+</ResponseField>
+
+<ResponseField name="month" type="object">
+  <Expandable title="properties">
+    <ResponseField name="number" type="number">
+      Month number (1-12)
+    </ResponseField>
+    
+    <ResponseField name="en" type="string">
+      English month name (e.g., "March")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="year" type="string">
+  Gregorian year (e.g., "2024")
+</ResponseField>
+
+<ResponseField name="weekday" type="object">
+  <Expandable title="properties">
+    <ResponseField name="en" type="string">
+      English weekday name (e.g., "Friday")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Geolocation Types
+
+### GeoLocation
+
+Complete location data with coordinates and timezone.
+
+```typescript
+interface GeoLocation {
+  readonly city: string;
+  readonly country: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly timezone: string;
+}
+```
+
+<ResponseField name="city" type="string">
+  City name
+</ResponseField>
+
+<ResponseField name="country" type="string">
+  Country name
+</ResponseField>
+
+<ResponseField name="latitude" type="number">
+  Latitude coordinate
+</ResponseField>
+
+<ResponseField name="longitude" type="number">
+  Longitude coordinate
+</ResponseField>
+
+<ResponseField name="timezone" type="string">
+  IANA timezone string
+</ResponseField>
+
+### CityCountryGuess
+
+City resolution result (timezone may be missing).
+
+```typescript
+interface CityCountryGuess {
+  readonly city: string;
+  readonly country: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly timezone?: string;
+}
+```
+
+<ResponseField name="timezone" type="string | undefined">
+  IANA timezone string (may be undefined)
+</ResponseField>
+
+## Calculation Method Types
+
+### CalculationMethod
+
+Prayer time calculation method details.
+
+```typescript
+interface CalculationMethod {
+  readonly id: number;
+  readonly name: string;
+  readonly params: {
+    readonly Fajr: number;
+    readonly Isha: number | string;
+  };
+}
+```
+
+<ResponseField name="id" type="number">
+  Method ID (0-23)
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Full method name (e.g., "Islamic Society of North America (ISNA)")
+</ResponseField>
+
+<ResponseField name="params" type="object">
+  Calculation parameters
+  
+  <Expandable title="properties">
+    <ResponseField name="Fajr" type="number">
+      Fajr angle in degrees
+    </ResponseField>
+    
+    <ResponseField name="Isha" type="number | string">
+      Isha angle in degrees or fixed time offset
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### MethodsResponse
+
+Record of all available calculation methods.
+
+```typescript
+type MethodsResponse = Readonly<Record<string, CalculationMethod>>;
+```
+
+Example:
+```typescript
+{
+  "0": { id: 0, name: "Jafari (Shia Ithna-Ashari)", params: { ... } },
+  "1": { id: 1, name: "University of Islamic Sciences, Karachi", params: { ... } },
+  "2": { id: 2, name: "Islamic Society of North America (ISNA)", params: { ... } },
+  // ...
+}
+```
+
+### MethodId
+
+Branded type for type-safe method IDs.
+
+```typescript
+type MethodId = number & { readonly __brand: 'MethodId' };
+```
+
+## Qibla Types
+
+### QiblaData
+
+Qibla direction information.
+
+```typescript
+interface QiblaData {
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly direction: number;
+}
+```
+
+<ResponseField name="latitude" type="number">
+  Input latitude
+</ResponseField>
+
+<ResponseField name="longitude" type="number">
+  Input longitude
+</ResponseField>
+
+<ResponseField name="direction" type="number">
+  Qibla bearing in degrees from North (0-360)
+</ResponseField>
+
+## Configuration Types
+
+### StoredLocation
+
+Stored location data (all fields optional).
+
+```typescript
+interface StoredLocation {
+  readonly city?: string | undefined;
+  readonly country?: string | undefined;
+  readonly latitude?: number | undefined;
+  readonly longitude?: number | undefined;
+}
+```
+
+### StoredPrayerSettings
+
+Stored prayer calculation settings.
+
+```typescript
+interface StoredPrayerSettings {
+  readonly method: number;
+  readonly school: number;
+  readonly timezone?: string | undefined;
+}
+```
+
+<ResponseField name="method" type="number">
+  Calculation method ID (defaults to 2)
+</ResponseField>
+
+<ResponseField name="school" type="number">
+  Asr school: 0 (Shafi) or 1 (Hanafi) (defaults to 0)
+</ResponseField>
+
+<ResponseField name="timezone" type="string | undefined">
+  Timezone override
+</ResponseField>
+
+## Function Option Types
+
+### FetchByCityOptions
+
+```typescript
+interface FetchByCityOptions {
+  readonly city: string;
+  readonly country: string;
+  readonly method?: number;
+  readonly school?: number;
+  readonly date?: Date;
+}
+```
+
+### FetchByAddressOptions
+
+```typescript
+interface FetchByAddressOptions {
+  readonly address: string;
+  readonly method?: number;
+  readonly school?: number;
+  readonly date?: Date;
+}
+```
+
+### FetchByCoordsOptions
+
+```typescript
+interface FetchByCoordsOptions {
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly method?: number;
+  readonly school?: number;
+  readonly timezone?: string;
+  readonly date?: Date;
+}
+```
+
+### FetchNextPrayerOptions
+
+```typescript
+interface FetchNextPrayerOptions {
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly method?: number;
+  readonly school?: number;
+  readonly timezone?: string;
+}
+```
+
+### FetchCalendarByCityOptions
+
+```typescript
+interface FetchCalendarByCityOptions {
+  readonly city: string;
+  readonly country: string;
+  readonly year: number;
+  readonly month?: number;
+  readonly method?: number;
+  readonly school?: number;
+}
+```
+
+### FetchCalendarByAddressOptions
+
+```typescript
+interface FetchCalendarByAddressOptions {
+  readonly address: string;
+  readonly year: number;
+  readonly month?: number;
+  readonly method?: number;
+  readonly school?: number;
+}
+```
+
+### FetchHijriCalendarByCityOptions
+
+```typescript
+interface FetchHijriCalendarByCityOptions {
+  readonly city: string;
+  readonly country: string;
+  readonly year: number;
+  readonly month: number;  // Required for Hijri calendar
+  readonly method?: number;
+  readonly school?: number;
+}
+```
+
+### FetchHijriCalendarByAddressOptions
+
+```typescript
+interface FetchHijriCalendarByAddressOptions {
+  readonly address: string;
+  readonly year: number;
+  readonly month: number;  // Required for Hijri calendar
+  readonly method?: number;
+  readonly school?: number;
+}
+```
+
+## Usage with TypeScript
+
+### Import Types
+
+```typescript
+import type {
+  PrayerData,
+  PrayerTimings,
+  HijriDate,
+  GregorianDate,
+  PrayerMeta,
+  GeoLocation,
+  QiblaData,
+  CalculationMethod,
+  MethodsResponse,
+} from 'ramadan-cli';
+```
+
+### Type Guards
+
+All API responses are validated at runtime:
+
+```typescript
+import { fetchTimingsByCity } from 'ramadan-cli';
+
+// Response is guaranteed to match PrayerData interface
+const data = await fetchTimingsByCity({
+  city: 'Lahore',
+  country: 'Pakistan',
+});
+
+// TypeScript knows the exact shape
+const fajr: string = data.timings.Fajr;
+const hijriMonth: string = data.date.hijri.month.en;
+```
+
+### Readonly Types
+
+All types use `readonly` modifiers to prevent accidental mutations:
+
+```typescript
+const data = await fetchTimingsByCity({ city: 'Lahore', country: 'Pakistan' });
+
+// TypeScript error: Cannot assign to 'Fajr' because it is a read-only property
+data.timings.Fajr = '06:00';
+```
+
+## Runtime Validation
+
+All API responses are validated using Zod schemas. If the API returns unexpected data, an error is thrown:
+
+```typescript
+try {
+  const data = await fetchTimingsByCity({
+    city: 'Invalid',
+    country: 'Invalid',
+  });
+} catch (error) {
+  // Error: Invalid API response: ...
+}
+```

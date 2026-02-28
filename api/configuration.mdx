@@ -1,0 +1,496 @@
+---
+title: 'Configuration'
+description: 'Manage stored location and prayer calculation settings'
+---
+
+## Overview
+
+The configuration API provides functions to manage persistent storage of user preferences. All settings are stored using the [conf](https://github.com/sindresorhus/conf) library in a local configuration file.
+
+## Location Management
+
+### getStoredLocation
+
+Retrieve the stored location from configuration.
+
+```typescript
+import { getStoredLocation } from 'ramadan-cli';
+
+const location = getStoredLocation();
+
+console.log(location.city);      // "Lahore" or undefined
+console.log(location.country);   // "Pakistan" or undefined
+console.log(location.latitude);  // 31.5204 or undefined
+console.log(location.longitude); // 74.3587 or undefined
+```
+
+<ResponseField name="return" type="StoredLocation">
+  <Expandable title="properties">
+    <ResponseField name="city" type="string | undefined">
+      Stored city name
+    </ResponseField>
+    
+    <ResponseField name="country" type="string | undefined">
+      Stored country name
+    </ResponseField>
+    
+    <ResponseField name="latitude" type="number | undefined">
+      Stored latitude coordinate
+    </ResponseField>
+    
+    <ResponseField name="longitude" type="number | undefined">
+      Stored longitude coordinate
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### setStoredLocation
+
+Save location data to configuration.
+
+```typescript
+import { setStoredLocation } from 'ramadan-cli';
+
+setStoredLocation({
+  city: 'Istanbul',
+  country: 'Turkey',
+  latitude: 41.0082,
+  longitude: 28.9784,
+});
+
+console.log('Location saved');
+```
+
+<ParamField path="location" type="StoredLocation" required>
+  <Expandable title="properties">
+    <ParamField path="city" type="string">
+      City name to store
+    </ParamField>
+    
+    <ParamField path="country" type="string">
+      Country name to store
+    </ParamField>
+    
+    <ParamField path="latitude" type="number">
+      Latitude coordinate
+    </ParamField>
+    
+    <ParamField path="longitude" type="number">
+      Longitude coordinate
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Note>
+All fields are optional. You can update individual fields without overwriting others.
+</Note>
+
+### hasStoredLocation
+
+Check if a valid location is stored.
+
+```typescript
+import { hasStoredLocation } from 'ramadan-cli';
+
+if (hasStoredLocation()) {
+  console.log('Location is configured');
+} else {
+  console.log('No location stored');
+}
+```
+
+<ResponseField name="return" type="boolean">
+  `true` if either city/country or coordinates are stored
+</ResponseField>
+
+## Prayer Settings
+
+### getStoredPrayerSettings
+
+Get calculation method, school, and timezone settings.
+
+```typescript
+import { getStoredPrayerSettings } from 'ramadan-cli';
+
+const settings = getStoredPrayerSettings();
+
+console.log(settings.method);   // 2 (ISNA)
+console.log(settings.school);   // 0 (Shafi)
+console.log(settings.timezone); // "America/New_York" or undefined
+```
+
+<ResponseField name="return" type="StoredPrayerSettings">
+  <Expandable title="properties">
+    <ResponseField name="method" type="number">
+      Calculation method ID (0-23). Defaults to 2 (ISNA)
+    </ResponseField>
+    
+    <ResponseField name="school" type="number">
+      Asr calculation school: 0 (Shafi) or 1 (Hanafi). Defaults to 0
+    </ResponseField>
+    
+    <ResponseField name="timezone" type="string | undefined">
+      IANA timezone string, if set
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### setStoredMethod
+
+Set the calculation method.
+
+```typescript
+import { setStoredMethod } from 'ramadan-cli';
+
+setStoredMethod(13); // Turkey method
+```
+
+<ParamField path="method" type="number" required>
+  Calculation method ID (0-23). See [prayer times methods](/api/prayer-times#method-ids-reference)
+</ParamField>
+
+### setStoredSchool
+
+Set the Asr calculation school.
+
+```typescript
+import { setStoredSchool } from 'ramadan-cli';
+
+setStoredSchool(1); // Hanafi school (later Asr)
+```
+
+<ParamField path="school" type="number" required>
+  School ID: `0` for Shafi (standard) or `1` for Hanafi (later Asr)
+</ParamField>
+
+### setStoredTimezone
+
+Set the timezone override.
+
+```typescript
+import { setStoredTimezone } from 'ramadan-cli';
+
+setStoredTimezone('Asia/Dubai');
+```
+
+<ParamField path="timezone" type="string">
+  IANA timezone string (e.g., "Asia/Karachi", "Europe/London")
+</ParamField>
+
+## Ramadan Date Settings
+
+### getStoredFirstRozaDate
+
+Get the configured first roza date (for custom Ramadan tracking).
+
+```typescript
+import { getStoredFirstRozaDate } from 'ramadan-cli';
+
+const date = getStoredFirstRozaDate();
+
+if (date) {
+  console.log(date); // "2024-03-11" (ISO format)
+}
+```
+
+<ResponseField name="return" type="string | undefined">
+  ISO date string (YYYY-MM-DD) or undefined if not set
+</ResponseField>
+
+### setStoredFirstRozaDate
+
+Set the first roza date for custom Ramadan tracking.
+
+```typescript
+import { setStoredFirstRozaDate } from 'ramadan-cli';
+
+try {
+  setStoredFirstRozaDate('2024-03-11');
+  console.log('First roza date saved');
+} catch (error) {
+  console.error('Invalid date format');
+}
+```
+
+<ParamField path="date" type="string" required>
+  ISO date string in YYYY-MM-DD format
+</ParamField>
+
+<Warning>
+The date must be in ISO format (YYYY-MM-DD). Invalid formats will throw an error.
+</Warning>
+
+### clearStoredFirstRozaDate
+
+Remove the stored first roza date.
+
+```typescript
+import { clearStoredFirstRozaDate } from 'ramadan-cli';
+
+clearStoredFirstRozaDate();
+console.log('First roza date cleared');
+```
+
+## Bulk Operations
+
+### saveAutoDetectedSetup
+
+Save location and apply recommended settings based on country.
+
+```typescript
+import { guessLocation, saveAutoDetectedSetup } from 'ramadan-cli';
+
+const location = await guessLocation();
+
+if (location) {
+  saveAutoDetectedSetup(location);
+  console.log('Setup complete with recommended settings');
+}
+```
+
+<ParamField path="location" type="GeoLocation" required>
+  Location data from `guessLocation()`
+</ParamField>
+
+This function:
+1. Saves city, country, coordinates
+2. Saves timezone
+3. Applies recommended calculation method for the country
+4. Applies recommended school (Hanafi/Shafi) for the country
+
+### clearRamadanConfig
+
+Clear all stored configuration.
+
+```typescript
+import { clearRamadanConfig } from 'ramadan-cli';
+
+clearRamadanConfig();
+console.log('All configuration cleared');
+```
+
+<Warning>
+This deletes all stored settings including location, method, school, timezone, and first roza date.
+</Warning>
+
+## Recommendations System
+
+### getRecommendedMethod
+
+Get the recommended calculation method for a country.
+
+```typescript
+import { getRecommendedMethod } from 'ramadan-cli';
+
+const method = getRecommendedMethod('Pakistan');
+console.log(method); // 1 (Karachi method)
+
+const method2 = getRecommendedMethod('United States');
+console.log(method2); // 2 (ISNA)
+
+const method3 = getRecommendedMethod('Unknown Country');
+console.log(method3); // null (no recommendation)
+```
+
+<ParamField path="country" type="string" required>
+  Country name (case-insensitive)
+</ParamField>
+
+<ResponseField name="return" type="number | null">
+  Recommended method ID or null if no recommendation
+</ResponseField>
+
+### getRecommendedSchool
+
+Get the recommended Asr school for a country.
+
+```typescript
+import { getRecommendedSchool } from 'ramadan-cli';
+
+const school = getRecommendedSchool('Pakistan');
+console.log(school); // 1 (Hanafi)
+
+const school2 = getRecommendedSchool('Saudi Arabia');
+console.log(school2); // 0 (Shafi)
+```
+
+<ParamField path="country" type="string" required>
+  Country name (case-insensitive)
+</ParamField>
+
+<ResponseField name="return" type="number">
+  0 for Shafi (standard) or 1 for Hanafi (later Asr)
+</ResponseField>
+
+### Hanafi Countries
+
+The following countries default to Hanafi school:
+- Pakistan
+- Bangladesh
+- India
+- Afghanistan
+- Turkey
+- Iraq
+- Syria
+- Jordan
+- Palestine
+- Central Asian countries (Kazakhstan, Uzbekistan, Tajikistan, etc.)
+
+All other countries default to Shafi school.
+
+### applyRecommendedSettingsIfUnset
+
+Apply recommended settings only if user hasn't customized them.
+
+```typescript
+import { applyRecommendedSettingsIfUnset } from 'ramadan-cli';
+
+applyRecommendedSettingsIfUnset('Turkey');
+```
+
+<ParamField path="country" type="string" required>
+  Country name
+</ParamField>
+
+## Usage Examples
+
+### Complete Setup Flow
+
+```typescript
+import {
+  guessLocation,
+  saveAutoDetectedSetup,
+  getStoredLocation,
+  getStoredPrayerSettings,
+  hasStoredLocation,
+} from 'ramadan-cli';
+
+// Check if already configured
+if (hasStoredLocation()) {
+  console.log('Already configured');
+  
+  const location = getStoredLocation();
+  const settings = getStoredPrayerSettings();
+  
+  console.log(`Location: ${location.city}, ${location.country}`);
+  console.log(`Method: ${settings.method}, School: ${settings.school}`);
+} else {
+  // Auto-detect and save
+  const location = await guessLocation();
+  
+  if (location) {
+    saveAutoDetectedSetup(location);
+    console.log('Configuration saved with recommendations');
+  } else {
+    console.log('Could not auto-detect location');
+  }
+}
+```
+
+### Manual Configuration
+
+```typescript
+import {
+  setStoredLocation,
+  setStoredMethod,
+  setStoredSchool,
+  setStoredTimezone,
+  getRecommendedMethod,
+  getRecommendedSchool,
+} from 'ramadan-cli';
+
+// Set location
+setStoredLocation({
+  city: 'Cairo',
+  country: 'Egypt',
+  latitude: 30.0444,
+  longitude: 31.2357,
+});
+
+// Apply recommended settings
+const method = getRecommendedMethod('Egypt');
+if (method !== null) {
+  setStoredMethod(method); // 5 (Egypt method)
+}
+
+const school = getRecommendedSchool('Egypt');
+setStoredSchool(school); // 0 (Shafi)
+
+setStoredTimezone('Africa/Cairo');
+
+console.log('Configuration complete');
+```
+
+### Update Individual Settings
+
+```typescript
+import {
+  getStoredLocation,
+  setStoredLocation,
+  getStoredPrayerSettings,
+  setStoredMethod,
+} from 'ramadan-cli';
+
+// Update only the city, keep everything else
+const current = getStoredLocation();
+setStoredLocation({
+  ...current,
+  city: 'Ankara',
+});
+
+// Update only the method
+setStoredMethod(13); // Turkey method
+
+console.log('Settings updated');
+```
+
+### Custom Ramadan Dates
+
+```typescript
+import {
+  setStoredFirstRozaDate,
+  getStoredFirstRozaDate,
+  clearStoredFirstRozaDate,
+} from 'ramadan-cli';
+
+// Set custom Ramadan start date
+setStoredFirstRozaDate('2024-03-11');
+
+const date = getStoredFirstRozaDate();
+console.log(`Ramadan starts: ${date}`);
+
+// Clear it later
+clearStoredFirstRozaDate();
+console.log('Now using Hijri calendar for Ramadan dates');
+```
+
+## Configuration Location
+
+Configuration is stored in:
+
+- **Linux**: `~/.config/ramadan-cli/config.json`
+- **macOS**: `~/Library/Preferences/ramadan-cli/config.json`
+- **Windows**: `%APPDATA%\ramadan-cli\Config\config.json`
+
+You can override the config directory using the `RAMADAN_CLI_CONFIG_DIR` environment variable:
+
+```bash
+export RAMADAN_CLI_CONFIG_DIR=/custom/path
+```
+
+## TypeScript Types
+
+```typescript
+interface StoredLocation {
+  readonly city?: string | undefined;
+  readonly country?: string | undefined;
+  readonly latitude?: number | undefined;
+  readonly longitude?: number | undefined;
+}
+
+interface StoredPrayerSettings {
+  readonly method: number;
+  readonly school: number;
+  readonly timezone?: string | undefined;
+}
+```

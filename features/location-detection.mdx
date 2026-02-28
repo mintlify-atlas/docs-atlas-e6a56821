@@ -1,0 +1,204 @@
+---
+title: "Automatic Location Detection"
+description: "How Ramadan CLI automatically detects your location using IP provider fallbacks"
+---
+
+Ramadan CLI automatically detects your location to provide accurate prayer times without requiring manual input. The geolocation system uses multiple IP-based providers with intelligent fallback logic.
+
+## How It Works
+
+When you run Ramadan CLI for the first time without specifying a city, it attempts to detect your location using your IP address. The system tries three different geolocation providers in sequence until one succeeds.
+
+### Provider Fallback Chain
+
+The location detection follows a priority-based fallback system:
+
+<Steps>
+  <Step title="Primary: ip-api.com">
+    The first provider attempted is `ip-api.com`, which queries:
+    ```
+    http://ip-api.com/json/?fields=city,country,lat,lon,timezone
+    ```
+    
+    Returns city, country, latitude, longitude, and timezone data.
+  </Step>
+  
+  <Step title="Secondary: ipapi.co">
+    If the primary provider fails, the system tries `ipapi.co`:
+    ```
+    https://ipapi.co/json/
+    ```
+    
+    Provides the same location data with a different API structure.
+  </Step>
+  
+  <Step title="Fallback: ipwho.is">
+    As a final fallback, the system uses `ipwho.is`:
+    ```
+    https://ipwho.is/
+    ```
+    
+    This provider includes a success field to validate the response.
+  </Step>
+</Steps>
+
+## Location Data Structure
+
+Each provider returns the following information:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `city` | string | Your city name (e.g., "San Francisco") |
+| `country` | string | Your country name (e.g., "United States") |
+| `latitude` | number | Geographic latitude coordinate |
+| `longitude` | number | Geographic longitude coordinate |
+| `timezone` | string | IANA timezone identifier (e.g., "America/Los_Angeles") |
+
+## Implementation Details
+
+The geolocation system is implemented in `src/geo.ts` with the following key features:
+
+### Error Handling
+
+Each provider attempt is wrapped in error handling:
+
+```typescript
+const tryIpApi = async (): Promise<GeoLocation | null> => {
+  try {
+    const json = await fetchJson(
+      'http://ip-api.com/json/?fields=city,country,lat,lon,timezone'
+    );
+    const parsed = IpApiSchema.safeParse(json);
+    if (!parsed.success) {
+      return null;
+    }
+    return {
+      city: parsed.data.city,
+      country: parsed.data.country,
+      latitude: parsed.data.lat,
+      longitude: parsed.data.lon,
+      timezone: parsed.data.timezone ?? '',
+    };
+  } catch {
+    return null;
+  }
+};
+```
+
+### Schema Validation
+
+All provider responses are validated using Zod schemas to ensure data integrity:
+
+- **ip-api.com**: Validates `city`, `country`, `lat`, `lon`, and optional `timezone`
+- **ipapi.co**: Validates `city`, `country_name`, `latitude`, `longitude`, and optional `timezone`
+- **ipwho.is**: Validates `success`, `city`, `country`, `latitude`, `longitude`, and nested `timezone.id`
+
+<Info>
+  The timezone field is optional across all providers. If not provided, it defaults to an empty string and falls back to stored settings or manual configuration.
+</Info>
+
+## Main Detection Function
+
+The `guessLocation()` function orchestrates the fallback chain:
+
+```typescript
+export const guessLocation = async (): Promise<GeoLocation | null> => {
+  const fromIpApi = await tryIpApi();
+  if (fromIpApi) {
+    return fromIpApi;
+  }
+
+  const fromIpapi = await tryIpapiCo();
+  if (fromIpapi) {
+    return fromIpapi;
+  }
+
+  return tryIpWhois();
+};
+```
+
+## City/Country Geocoding
+
+For manual city input, Ramadan CLI uses the Open-Meteo Geocoding API to resolve location details:
+
+```typescript
+const guessCityCountry = async (
+  query: string
+): Promise<CityCountryGuess | null> => {
+  const url = new URL('https://geocoding-api.open-meteo.com/v1/search');
+  url.searchParams.set('name', query);
+  url.searchParams.set('count', '1');
+  url.searchParams.set('language', 'en');
+  url.searchParams.set('format', 'json');
+  // ...
+};
+```
+
+## When Detection Fails
+
+If all three IP providers fail and no saved configuration exists, you'll see this error:
+
+```
+Could not detect location. Pass a city like `ramadan-cli "Lahore"`.
+```
+
+<Note>
+  Location detection happens automatically only when:
+  - No saved configuration exists
+  - No city argument is provided
+  - Not using `--json` or `--status` flags (which skip interactive setup)
+</Note>
+
+## Auto-Save Behavior
+
+When location detection succeeds, the data is automatically saved to your configuration:
+
+```typescript
+saveAutoDetectedSetup(guessed);
+```
+
+This includes:
+- City name
+- Country name
+- Latitude and longitude coordinates
+- Timezone (if available)
+- Country-specific recommended prayer calculation method
+- Country-specific recommended juristic school
+
+## Testing Location Detection
+
+To test location detection, clear your saved configuration first:
+
+```bash
+roza reset
+```
+
+Then run without any arguments:
+
+```bash
+roza
+```
+
+The CLI will attempt to auto-detect your location and display the detected city in the output:
+
+```
+📍 San Francisco, United States
+```
+
+## Privacy Considerations
+
+<Warning>
+  The IP-based geolocation providers receive your public IP address when you use automatic location detection. No personally identifiable information is sent beyond your IP address, which is inherently visible when making HTTP requests.
+</Warning>
+
+If you prefer not to use automatic detection:
+
+1. Use the interactive setup to manually enter your city
+2. Pass a city as an argument: `roza "Lahore"`
+3. Use the config command: `roza config --city "Dubai" --country "UAE"`
+
+## Related Features
+
+- [Custom First Roza](/features/custom-first-roza) - Override automatic Ramadan date detection
+- [Output Modes](/features/output-modes) - Different ways to view prayer times
+- [Ramadan Calendar](/features/ramadan-calendar) - View the full month schedule

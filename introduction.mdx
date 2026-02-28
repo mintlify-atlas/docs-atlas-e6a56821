@@ -1,0 +1,180 @@
+---
+title: Introduction
+description: Ramadan-first CLI for Sehar and Iftar timings anywhere in the world with automatic location detection
+---
+
+<img
+  className="block"
+  src="https://raw.githubusercontent.com/ahmadawais/ramadan-cli/refs/heads/main/.github/cover.png"
+  alt="Ramadan CLI Hero"
+/>
+
+# Ramadan CLI
+
+A Ramadan-focused command-line tool that brings Sehar and Iftar timings directly to your terminal. Built for developers, agents, and anyone who wants quick access to prayer times during Ramadan.
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get up and running in 30 seconds
+  </Card>
+  <Card
+    title="Installation"
+    icon="download"
+    href="/installation"
+  >
+    Install with npm, yarn, pnpm, or bun
+  </Card>
+  <Card
+    title="CLI Reference"
+    icon="terminal"
+    href="/usage/commands"
+  >
+    Complete command documentation
+  </Card>
+  <Card
+    title="Configuration"
+    icon="gear"
+    href="/usage/configuration"
+  >
+    Customize your settings
+  </Card>
+</CardGroup>
+
+## Why Ramadan CLI?
+
+Ramadan CLI is designed to make checking Sehar and Iftar times effortless, with smart defaults and powerful features.
+
+<AccordionGroup>
+  <Accordion title="Ramadan-First Design" icon="moon">
+    Unlike general prayer time apps, Ramadan CLI focuses exclusively on what matters during Ramadan: Sehar (Fajr) and Iftar (Maghrib) times. Clean, focused output without extra noise.
+  </Accordion>
+
+  <Accordion title="Automatic Location Detection" icon="location-dot">
+    No manual setup required. The CLI automatically detects your location using IP-based geolocation with multiple fallback providers for reliability.
+  </Accordion>
+
+  <Accordion title="Smart Country-Based Recommendations" icon="compass">
+    Automatically recommends the most appropriate calculation method and Asr school based on your country. For example, users in Pakistan get the Karachi method, while North American users get ISNA.
+  </Accordion>
+
+  <Accordion title="Real-Time Countdowns" icon="clock">
+    See exactly how much time until your next Sehar or Iftar, with automatic timezone detection for accurate countdowns wherever you are.
+  </Accordion>
+
+  <Accordion title="Flexible Output Modes" icon="display">
+    Whether you need today's times, the entire month, a specific day, or a single-line status for your status bar, Ramadan CLI has you covered.
+  </Accordion>
+
+  <Accordion title="Agent-Friendly" icon="robot">
+    Built for both humans and AI agents with JSON output mode, status bar integration, and programmatic configuration options.
+  </Accordion>
+</AccordionGroup>
+
+## Key Features
+
+<CardGroup cols={3}>
+  <Card title="Auto Setup" icon="wand-magic-sparkles">
+    Interactive first-run setup detects location, timezone, and recommends optimal settings
+  </Card>
+  <Card title="Multiple Aliases" icon="link">
+    Use `roza`, `ramadan`, `ramzan`, `ramazan`, or `ramadan-cli`
+  </Card>
+  <Card title="View Full Month" icon="calendar">
+    See all 30 days of Ramadan with the `--all` flag
+  </Card>
+  <Card title="Specific Days" icon="calendar-day">
+    Check any roza (1-30) with the `--number` flag
+  </Card>
+  <Card title="Status Bar Mode" icon="chart-line">
+    Single-line output for status bars and coding agents with `--status`
+  </Card>
+  <Card title="Custom Dates" icon="calendar-check">
+    Override Ramadan start date with `--first-roza-date`
+  </Card>
+  <Card title="JSON Output" icon="code">
+    Machine-readable output with `--json` flag
+  </Card>
+  <Card title="Multiple Cities" icon="earth-americas">
+    Check times for any city: `ramadan-cli "San Francisco"`
+  </Card>
+  <Card title="Easy Reset" icon="rotate-right">
+    Clear all config with `ramadan-cli reset`
+  </Card>
+</CardGroup>
+
+## Quick Example
+
+```bash
+# Show today's Sehar and Iftar times
+roza
+
+# Show full Ramadan month for San Francisco
+roza "San Francisco" --all
+
+# Check specific roza day
+roza --number 15
+
+# Status bar mode (next event only)
+roza --status
+```
+
+<Note>
+  **Sehar = Fajr** and **Iftar = Maghrib**. Times are displayed in 12-hour format (AM/PM).
+</Note>
+
+## What You'll Get
+
+When you run Ramadan CLI, you'll see:
+
+- **Current status**: Whether it's Sehar time, fasting hours, or Iftar time
+- **Next event**: What's coming next (Sehar or Iftar)
+- **Countdown**: Exact time remaining until the next event
+- **Prayer times**: Sehar and Iftar times in an easy-to-read table
+- **Hijri dates**: Islamic calendar dates alongside Gregorian dates
+
+## Built For
+
+<CardGroup cols={2}>
+  <Card title="Developers" icon="code">
+    Terminal-first workflow with powerful CLI flags and JSON output
+  </Card>
+  <Card title="Muslims Worldwide" icon="earth-americas">
+    Works anywhere with automatic location and timezone detection
+  </Card>
+  <Card title="Status Bar Users" icon="window-maximize">
+    Single-line mode perfect for tmux, i3bar, or any status bar
+  </Card>
+  <Card title="AI Agents" icon="robot">
+    Structured output and programmatic configuration for automation
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<Steps>
+  <Step title="Install">
+    Choose your preferred package manager and install Ramadan CLI globally or run with npx
+    
+    [Go to Installation →](/installation)
+  </Step>
+  <Step title="Quick Start">
+    Run your first command and complete the interactive setup
+    
+    [Go to Quick Start →](/quickstart)
+  </Step>
+  <Step title="Explore">
+    Learn about all available commands and configuration options
+    
+    [Go to CLI Reference →](/usage/commands)
+  </Step>
+</Steps>
+
+---
+
+<Tip>
+  Ramadan CLI is powered by the [Aladhan Prayer Times API](https://aladhan.com/prayer-times-api) and supports 24 different calculation methods used worldwide.
+</Tip>

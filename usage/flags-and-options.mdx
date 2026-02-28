@@ -1,0 +1,767 @@
+---
+title: 'Flags and Options'
+description: 'Complete reference of all command-line flags and options'
+icon: 'flag'
+---
+
+## Main Command Flags
+
+Flags for the main `ramadan-cli` command (showing Sehar/Iftar timings).
+
+### City Selection
+
+<ParamField path="[city]" type="string" optional>
+  Positional argument for city name (one-off lookup)
+  
+  **Type:** `string`
+  
+  **Default:** Uses saved configuration or auto-detects
+  
+  **Behavior:** Does not overwrite saved configuration. Only affects current run.
+  
+  **Examples:**
+  ```bash
+  roza "San Francisco"
+  roza lahore
+  roza "Vancouver, Canada"
+  ```
+  
+  **City Aliases:**
+  - `sf` → `San Francisco`
+</ParamField>
+
+<ParamField path="--city, -c" type="string" optional>
+  Flag alternative for specifying city
+  
+  **Type:** `string`
+  
+  **Default:** None
+  
+  **Behavior:** Same as positional city argument
+  
+  **Examples:**
+  ```bash
+  roza --city "San Francisco"
+  roza -c lahore
+  ```
+</ParamField>
+
+### Display Modes
+
+<ParamField path="--all, -a" type="boolean" default={false}>
+  Show complete Ramadan month (all 30 days)
+  
+  **Type:** `boolean`
+  
+  **Default:** `false`
+  
+  **Examples:**
+  ```bash
+  roza --all
+  roza -a
+  roza "Lahore" --all
+  ```
+  
+  **Output:** Table with all 30 roza days showing Sehar, Iftar, dates, and Hijri dates
+  
+  <Warning>
+  Cannot be used with `--number`. Choose one display mode.
+  </Warning>
+</ParamField>
+
+<ParamField path="--number, -n" type="number" optional>
+  Show specific roza day (1-30)
+  
+  **Type:** `number` (integer)
+  
+  **Range:** 1 to 30
+  
+  **Default:** None (shows today by default)
+  
+  **Validation:** Must be an integer between 1 and 30, or you'll get: `Roza number must be between 1 and 30.`
+  
+  **Examples:**
+  ```bash
+  roza --number 15
+  roza -n 27
+  roza "Lahore" -n 1
+  ```
+  
+  <Warning>
+  Cannot be used with `--all`. Choose one display mode.
+  </Warning>
+</ParamField>
+
+### Output Formats
+
+<ParamField path="--plain, -p" type="boolean" default={false}>
+  Plain text output without ASCII banner
+  
+  **Type:** `boolean`
+  
+  **Default:** `false` (shows decorative banner)
+  
+  **Behavior:** Replaces ASCII art banner with simple "RAMADAN CLI" text
+  
+  **Examples:**
+  ```bash
+  roza --plain
+  roza -p
+  roza "San Francisco" --plain --all
+  ```
+  
+  **Use Cases:**
+  - Cleaner terminal output
+  - Logging to files
+  - Screen readers
+</ParamField>
+
+<ParamField path="--json, -j" type="boolean" default={false}>
+  JSON-only structured output
+  
+  **Type:** `boolean`
+  
+  **Default:** `false`
+  
+  **Behavior:**
+  - Outputs structured JSON to stdout (success) or stderr (error)
+  - Skips interactive setup prompts
+  - Disables spinner and decorative output
+  
+  **Success Output:**
+  ```json
+  {
+    "mode": "today",
+    "location": "San Francisco, United States",
+    "hijriYear": 1447,
+    "rows": [
+      {
+        "roza": 15,
+        "sehar": "5:45 AM",
+        "iftar": "7:32 PM",
+        "date": "18-03-2026",
+        "hijri": "15 Ramadan 1447"
+      }
+    ]
+  }
+  ```
+  
+  **Error Output (stderr):**
+  ```json
+  {
+    "ok": false,
+    "error": {
+      "code": "LOCATION_DETECTION_FAILED",
+      "message": "Could not detect location. Pass a city like `ramadan-cli \"Lahore\"`."
+    }
+  }
+  ```
+  
+  **Error Codes:**
+  - `INVALID_FIRST_ROZA_DATE` - Invalid date format
+  - `INVALID_FLAG_COMBINATION` - Used `--all` and `--number` together
+  - `PRAYER_TIMES_FETCH_FAILED` - API fetch error
+  - `RAMADAN_CALENDAR_FETCH_FAILED` - Calendar fetch error
+  - `LOCATION_DETECTION_FAILED` - Could not detect location
+  - `ROZA_NOT_FOUND` - Invalid roza number
+  - `RAMADAN_CLI_ERROR` - Generic error
+  - `UNKNOWN_ERROR` - Unknown error
+  
+  **Examples:**
+  ```bash
+  roza --json
+  roza --json | jq '.rows[0].iftar'
+  roza "Lahore" --all --json
+  ```
+  
+  **Use Cases:**
+  - Scripts and automation
+  - CI/CD pipelines
+  - Parsing with jq
+  - Integration with other tools
+</ParamField>
+
+<ParamField path="--status, -s" type="boolean" default={false}>
+  Status line output (next event only)
+  
+  **Type:** `boolean`
+  
+  **Default:** `false`
+  
+  **Behavior:**
+  - Outputs single line with next event and countdown
+  - Silently fails on error (no output)
+  - Skips interactive setup
+  - Perfect for status bars
+  
+  **Output Examples:**
+  ```
+  Iftar in 3h 45m
+  Sehar in 8h 12m
+  Fast starts in 25m
+  ```
+  
+  **Use Cases:**
+  - tmux status bar
+  - i3 status bar
+  - waybar
+  - Coding agents
+  - Shell prompts
+  
+  **Examples:**
+  ```bash
+  roza --status
+  roza -s
+  roza -s --city Lahore
+  ```
+  
+  **tmux Example:**
+  ```tmux
+  set -g status-right "#[fg=green]🌙 #(roza -s)#[default]"
+  ```
+  
+  **i3blocks Example:**
+  ```ini
+  [ramadan]
+  command=roza -s
+  interval=60
+  ```
+</ParamField>
+
+### Custom Date Override
+
+<ParamField path="--first-roza-date" type="string" optional>
+  Set and use a custom first roza date
+  
+  **Type:** `string` (ISO 8601 date)
+  
+  **Format:** `YYYY-MM-DD`
+  
+  **Default:** Uses API-provided Ramadan date from Hijri calendar
+  
+  **Behavior:**
+  - Persists across runs (saved to config)
+  - Overrides API Hijri calendar
+  - Calculates all 30 roza days from this start date
+  
+  **Validation:** Must be valid ISO 8601 date or you'll get: `Invalid first roza date. Use YYYY-MM-DD.`
+  
+  **Examples:**
+  ```bash
+  roza --first-roza-date 2026-02-19
+  roza --first-roza-date 2026-03-01
+  roza --all --first-roza-date 2026-02-19
+  ```
+  
+  **Use Cases:**
+  - Local moonsighting differs from API
+  - Following specific country's calendar
+  - Testing with specific dates
+</ParamField>
+
+<ParamField path="--clear-first-roza-date" type="boolean" default={false}>
+  Clear custom first roza date and use API Ramadan date
+  
+  **Type:** `boolean`
+  
+  **Default:** `false`
+  
+  **Behavior:**
+  - Removes saved custom first roza date
+  - Reverts to API-provided Hijri calendar
+  - Takes precedence over `--first-roza-date` if both provided
+  
+  **Examples:**
+  ```bash
+  roza --clear-first-roza-date
+  ```
+  
+  **Use Cases:**
+  - Return to standard API dates
+  - Remove test date override
+</ParamField>
+
+### Version and Help
+
+<ParamField path="--version, -v" type="boolean">
+  Display version number
+  
+  **Type:** `boolean`
+  
+  **Output:** Version string only to stdout
+  
+  **Examples:**
+  ```bash
+  roza --version
+  roza -v
+  ```
+  
+  **Output:**
+  ```
+  2.0.0
+  ```
+</ParamField>
+
+<ParamField path="--help, -h" type="boolean">
+  Display help information
+  
+  **Type:** `boolean`
+  
+  **Output:** Usage information and available flags
+  
+  **Examples:**
+  ```bash
+  roza --help
+  roza -h
+  ```
+</ParamField>
+
+---
+
+## Config Command Flags
+
+Flags for the `ramadan-cli config` command (managing configuration).
+
+### Location Configuration
+
+<ParamField path="--city" type="string" optional>
+  Save city name to configuration
+  
+  **Type:** `string`
+  
+  **Behavior:** Merges with existing config (doesn't clear other values)
+  
+  **Examples:**
+  ```bash
+  roza config --city "San Francisco"
+  roza config --city "Lahore"
+  ```
+</ParamField>
+
+<ParamField path="--country" type="string" optional>
+  Save country name to configuration
+  
+  **Type:** `string`
+  
+  **Behavior:** Merges with existing config
+  
+  **Examples:**
+  ```bash
+  roza config --country "United States"
+  roza config --country "Pakistan"
+  ```
+</ParamField>
+
+<ParamField path="--latitude" type="number" optional>
+  Save latitude coordinate (-90 to 90)
+  
+  **Type:** `number`
+  
+  **Range:** -90 to 90
+  
+  **Validation:** Must be between -90 and 90 or you'll get: `Invalid latitude.`
+  
+  **Examples:**
+  ```bash
+  roza config --latitude 37.7749
+  roza config --latitude 31.5497
+  ```
+</ParamField>
+
+<ParamField path="--longitude" type="number" optional>
+  Save longitude coordinate (-180 to 180)
+  
+  **Type:** `number`
+  
+  **Range:** -180 to 180
+  
+  **Validation:** Must be between -180 and 180 or you'll get: `Invalid longitude.`
+  
+  **Examples:**
+  ```bash
+  roza config --longitude -122.4194
+  roza config --longitude 74.3436
+  ```
+</ParamField>
+
+### Prayer Settings Configuration
+
+<ParamField path="--method" type="number" optional>
+  Save calculation method (0-23)
+  
+  **Type:** `number` (integer)
+  
+  **Range:** 0 to 23
+  
+  **Validation:** Must be integer from 0 to 23 or you'll get: `Invalid method.`
+  
+  **Common Values:**
+  - `0` - Shia Ithna-Ashari
+  - `1` - University of Islamic Sciences, Karachi
+  - `2` - Islamic Society of North America (ISNA)
+  - `3` - Muslim World League
+  - `4` - Umm Al-Qura University, Makkah
+  - `5` - Egyptian General Authority of Survey
+  - `15` - Institute of Geophysics, University of Tehran
+  
+  See [Aladhan API Methods](https://aladhan.com/prayer-times-api#methods) for complete list.
+  
+  **Examples:**
+  ```bash
+  roza config --method 2
+  roza config --method 15
+  ```
+</ParamField>
+
+<ParamField path="--school" type="number" optional>
+  Save juristic school (0=Shafi, 1=Hanafi)
+  
+  **Type:** `number` (integer)
+  
+  **Range:** 0 or 1
+  
+  **Validation:** Must be 0 or 1 or you'll get: `Invalid school.`
+  
+  **Values:**
+  - `0` - Shafi, Maliki, Hanbali, Jafari (standard Asr time)
+  - `1` - Hanafi (earlier Asr time)
+  
+  **Examples:**
+  ```bash
+  roza config --school 0
+  roza config --school 1
+  ```
+</ParamField>
+
+<ParamField path="--timezone" type="string" optional>
+  Save timezone identifier
+  
+  **Type:** `string` (IANA timezone)
+  
+  **Format:** IANA timezone identifier (e.g., `America/Los_Angeles`)
+  
+  **Common Values:**
+  - `America/Los_Angeles`
+  - `America/New_York`
+  - `America/Chicago`
+  - `America/Vancouver`
+  - `Asia/Karachi`
+  - `Asia/Dubai`
+  - `Europe/London`
+  
+  **Examples:**
+  ```bash
+  roza config --timezone "America/Los_Angeles"
+  roza config --timezone "Asia/Karachi"
+  ```
+</ParamField>
+
+### Config Actions
+
+<ParamField path="--show" type="boolean" default={false}>
+  Display current configuration
+  
+  **Type:** `boolean`
+  
+  **Default:** `false`
+  
+  **Output:**
+  ```
+  Current configuration:
+    City: San Francisco
+    Country: United States
+    Latitude: 37.7749
+    Longitude: -122.4194
+    Method: 2
+    School: 0
+    Timezone: America/Los_Angeles
+    First Roza Date: 2026-02-19
+  ```
+  
+  **Examples:**
+  ```bash
+  roza config --show
+  ```
+</ParamField>
+
+<ParamField path="--clear" type="boolean" default={false}>
+  Clear all saved configuration
+  
+  **Type:** `boolean`
+  
+  **Default:** `false`
+  
+  **Behavior:** Removes all saved settings (location, method, school, timezone, first roza date)
+  
+  **Output:**
+  ```
+  Configuration cleared.
+  ```
+  
+  **Examples:**
+  ```bash
+  roza config --clear
+  ```
+  
+  <Note>
+  Equivalent to `roza reset`
+  </Note>
+</ParamField>
+
+---
+
+## Flag Combinations and Conflicts
+
+### Invalid Combinations
+
+<Warning>
+**Cannot use together:** `--all` and `--number`
+
+These flags are mutually exclusive. You must choose one display mode.
+
+```bash
+# ❌ Invalid
+roza --all --number 15
+
+# ✅ Valid
+roza --all
+roza --number 15
+```
+
+Error: `Use either --all or --number, not both.`
+</Warning>
+
+### Flag Precedence
+
+<Tabs>
+  <Tab title="City">
+    Both positional argument and flag can specify city:
+    ```bash
+    # These are equivalent
+    roza "San Francisco"
+    roza --city "San Francisco"
+    ```
+    
+    If both provided, flag takes precedence:
+    ```bash
+    # Uses Lahore (from flag)
+    roza "San Francisco" --city "Lahore"
+    ```
+  </Tab>
+  <Tab title="First Roza Date">
+    `--clear-first-roza-date` takes precedence over `--first-roza-date`:
+    ```bash
+    # Custom date is cleared (--clear wins)
+    roza --first-roza-date 2026-02-19 --clear-first-roza-date
+    ```
+  </Tab>
+  <Tab title="Config">
+    In `config` command, last flag wins if duplicated:
+    ```bash
+    # Uses method 15 (last one)
+    roza config --method 2 --method 15
+    ```
+  </Tab>
+</Tabs>
+
+### Compatible Combinations
+
+<CodeGroup>
+
+```bash City + Mode
+# City with display mode
+roza "Lahore" --all
+roza "San Francisco" --number 15
+```
+
+```bash City + Format
+# City with output format
+roza "Lahore" --json
+roza "San Francisco" --plain
+```
+
+```bash Mode + Format
+# Display mode with format
+roza --all --json
+roza --number 10 --plain
+```
+
+```bash City + Date
+# City with custom date
+roza "Lahore" --first-roza-date 2026-02-19
+roza "San Francisco" --all --first-roza-date 2026-03-01
+```
+
+</CodeGroup>
+
+---
+
+## Flag Reference Tables
+
+### Main Command Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `[city]` | - | `string` | config/auto-detect | City for one-off lookup |
+| `--city` | `-c` | `string` | none | City (flag alternative) |
+| `--all` | `-a` | `boolean` | `false` | Show all 30 days |
+| `--number` | `-n` | `number` | none | Show specific roza (1-30) |
+| `--plain` | `-p` | `boolean` | `false` | Plain text output |
+| `--json` | `-j` | `boolean` | `false` | JSON output |
+| `--status` | `-s` | `boolean` | `false` | Status line output |
+| `--first-roza-date` | - | `string` | API date | Custom first roza date (YYYY-MM-DD) |
+| `--clear-first-roza-date` | - | `boolean` | `false` | Clear custom first roza date |
+| `--version` | `-v` | `boolean` | - | Display version |
+| `--help` | `-h` | `boolean` | - | Display help |
+
+### Config Command Flags
+
+| Flag | Type | Range/Format | Description |
+|------|------|--------------|-------------|
+| `--city` | `string` | - | Save city name |
+| `--country` | `string` | - | Save country name |
+| `--latitude` | `number` | -90 to 90 | Save latitude |
+| `--longitude` | `number` | -180 to 180 | Save longitude |
+| `--method` | `number` | 0 to 23 | Save calculation method |
+| `--school` | `number` | 0 or 1 | Save juristic school |
+| `--timezone` | `string` | IANA timezone | Save timezone |
+| `--show` | `boolean` | - | Display configuration |
+| `--clear` | `boolean` | - | Clear configuration |
+
+---
+
+## Environment Variables
+
+<ParamField path="RAMADAN_CLI_CONFIG_DIR" type="string" optional>
+  Override configuration directory
+  
+  **Type:** `string` (directory path)
+  
+  **Default:**
+  - macOS/Linux: `~/.config/ramadan-cli`
+  - Windows: `%APPDATA%\ramadan-cli`
+  
+  **Examples:**
+  ```bash
+  export RAMADAN_CLI_CONFIG_DIR="/custom/path"
+  roza config --show
+  ```
+  
+  **Use Cases:**
+  - Testing with isolated configs
+  - Multiple user profiles
+  - CI/CD environments
+  - Agent skill packages
+</ParamField>
+
+---
+
+## Examples by Use Case
+
+### Personal Daily Use
+
+```bash
+# Setup once
+roza config --city "San Francisco" --country "United States"
+
+# Daily usage
+roza           # Today's timings
+roza --all     # Full month view
+roza -n 27     # Check Laylatul Qadr
+```
+
+### Travelers
+
+```bash
+# Home config saved
+roza config --city "San Francisco"
+
+# Traveling to Lahore - one-off lookup
+roza "Lahore"
+
+# Back home - uses saved config
+roza
+```
+
+### Status Bars
+
+```bash
+# Setup
+roza config --city "Vancouver" --country "Canada"
+
+# tmux status bar
+roza -s
+
+# waybar (in config.json)
+"custom/ramadan": {
+  "exec": "roza -s",
+  "interval": 60
+}
+```
+
+### Scripts and Automation
+
+```bash
+# Non-interactive setup
+roza config --city "Lahore" --country "Pakistan" --method 1
+
+# JSON output for parsing
+IFTAR_TIME=$(roza --json | jq -r '.rows[0].iftar')
+echo "Iftar: $IFTAR_TIME"
+
+# Check specific day
+roza -n 15 --json | jq '.rows[0]'
+```
+
+### CI/CD Pipelines
+
+```bash
+# Isolated config
+export RAMADAN_CLI_CONFIG_DIR="$CI_PROJECT_DIR/.ramadan"
+
+# Setup
+roza config --city "San Francisco" --country "United States"
+
+# Use in pipeline
+roza --json > timings.json
+```
+
+### Testing Different Dates
+
+```bash
+# Test with custom start date
+roza --first-roza-date 2026-02-19 --all
+
+# Check specific day with custom date
+roza -n 27 --first-roza-date 2026-02-19
+
+# Clear and revert to API dates
+roza --clear-first-roza-date
+```
+
+### Multiple Locations
+
+```bash
+# Check multiple cities without changing config
+roza "San Francisco"
+roza "Lahore"
+roza "Vancouver"
+roza "Dubai"
+
+# Compare in JSON
+roza "San Francisco" --json > sf.json
+roza "Lahore" --json > lahore.json
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Basic Usage" icon="play" href="/usage/basic-usage">
+    Learn common usage patterns
+  </Card>
+  <Card title="Configuration" icon="gear" href="/usage/configuration">
+    Understand configuration management
+  </Card>
+</CardGroup>

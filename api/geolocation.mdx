@@ -1,0 +1,337 @@
+---
+title: 'Geolocation'
+description: 'Auto-detect user location and resolve city queries'
+---
+
+## Overview
+
+The geolocation API provides functions to automatically detect a user's location or resolve city/country queries. These functions are useful for providing location-based defaults in your application.
+
+## Auto-detect Location
+
+### guessLocation
+
+Automatically detect the user's location based on their IP address.
+
+```typescript
+import { guessLocation } from 'ramadan-cli';
+
+const location = await guessLocation();
+
+if (location) {
+  console.log(location.city);      // "Lahore"
+  console.log(location.country);   // "Pakistan"
+  console.log(location.latitude);  // 31.5204
+  console.log(location.longitude); // 74.3587
+  console.log(location.timezone);  // "Asia/Karachi"
+}
+```
+
+<ResponseField name="return" type="Promise<GeoLocation | null>">
+  Location data or null if detection fails
+  
+  <Expandable title="properties">
+    <ResponseField name="city" type="string">
+      Detected city name
+    </ResponseField>
+    
+    <ResponseField name="country" type="string">
+      Detected country name
+    </ResponseField>
+    
+    <ResponseField name="latitude" type="number">
+      Latitude coordinate
+    </ResponseField>
+    
+    <ResponseField name="longitude" type="number">
+      Longitude coordinate
+    </ResponseField>
+    
+    <ResponseField name="timezone" type="string">
+      IANA timezone string (e.g., "Asia/Karachi")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### How It Works
+
+The `guessLocation` function tries multiple free IP geolocation services in sequence:
+
+1. **ip-api.com** - First attempt
+2. **ipapi.co** - Fallback if first fails
+3. **ipwho.is** - Final fallback
+
+This redundancy ensures high reliability even if one service is down.
+
+<Warning>
+IP-based geolocation may not be accurate for users behind VPNs or proxies.
+</Warning>
+
+## Resolve City Query
+
+### guessCityCountry
+
+Resolve a city name or query string to get coordinates and timezone.
+
+```typescript
+import { guessCityCountry } from 'ramadan-cli';
+
+const result = await guessCityCountry('Istanbul');
+
+if (result) {
+  console.log(result.city);      // "Istanbul"
+  console.log(result.country);   // "Turkey"
+  console.log(result.latitude);  // 41.0082
+  console.log(result.longitude); // 28.9784
+  console.log(result.timezone);  // "Europe/Istanbul"
+}
+```
+
+<ParamField path="query" type="string" required>
+  City name or search query (e.g., "London", "New York", "Tokyo")
+</ParamField>
+
+<ResponseField name="return" type="Promise<CityCountryGuess | null>">
+  City data or null if not found
+  
+  <Expandable title="properties">
+    <ResponseField name="city" type="string">
+      Resolved city name
+    </ResponseField>
+    
+    <ResponseField name="country" type="string">
+      Country name
+    </ResponseField>
+    
+    <ResponseField name="latitude" type="number">
+      Latitude coordinate
+    </ResponseField>
+    
+    <ResponseField name="longitude" type="number">
+      Longitude coordinate
+    </ResponseField>
+    
+    <ResponseField name="timezone" type="string" optional>
+      IANA timezone string (may be undefined)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Geocoding Service
+
+This function uses the [Open-Meteo Geocoding API](https://open-meteo.com/en/docs/geocoding-api) to resolve city queries. The API:
+
+- Returns the first (most relevant) match for ambiguous queries
+- Supports international city names
+- Provides accurate coordinates and timezone data
+- Is free and requires no API key
+
+## Usage Examples
+
+### Auto-detect and Save Location
+
+```typescript
+import { guessLocation, saveAutoDetectedSetup } from 'ramadan-cli';
+
+const location = await guessLocation();
+
+if (location) {
+  // Save location to config
+  saveAutoDetectedSetup(location);
+  
+  console.log(`Location saved: ${location.city}, ${location.country}`);
+} else {
+  console.log('Could not detect location');
+}
+```
+
+### Search for City
+
+```typescript
+import { guessCityCountry } from 'ramadan-cli';
+
+// Search with various formats
+const queries = [
+  'Paris',
+  'San Francisco',
+  'Dubai',
+  'New York City',
+];
+
+for (const query of queries) {
+  const result = await guessCityCountry(query);
+  
+  if (result) {
+    console.log(`${query} → ${result.city}, ${result.country}`);
+    console.log(`  Coordinates: ${result.latitude}, ${result.longitude}`);
+    console.log(`  Timezone: ${result.timezone}`);
+  } else {
+    console.log(`${query} → Not found`);
+  }
+}
+```
+
+### Fallback Chain
+
+```typescript
+import { guessLocation, guessCityCountry } from 'ramadan-cli';
+
+// Try auto-detect first, then fallback to manual search
+let location = await guessLocation();
+
+if (!location) {
+  console.log('Auto-detect failed, trying manual search...');
+  location = await guessCityCountry('London');
+}
+
+if (location) {
+  console.log(`Using: ${location.city}, ${location.country}`);
+} else {
+  console.log('No location available');
+}
+```
+
+### Validate User Input
+
+```typescript
+import { guessCityCountry } from 'ramadan-cli';
+
+async function validateCity(userInput: string): Promise<boolean> {
+  const result = await guessCityCountry(userInput);
+  return result !== null;
+}
+
+const isValid = await validateCity('Tokyo');
+if (isValid) {
+  console.log('Valid city');
+} else {
+  console.log('City not found');
+}
+```
+
+### Get Timezone for Prayer Times
+
+```typescript
+import { guessCityCountry, fetchTimingsByCoords } from 'ramadan-cli';
+
+const cityData = await guessCityCountry('Jakarta');
+
+if (cityData && cityData.timezone) {
+  const prayerTimes = await fetchTimingsByCoords({
+    latitude: cityData.latitude,
+    longitude: cityData.longitude,
+    timezone: cityData.timezone, // Use resolved timezone
+    method: 20, // Indonesia method
+  });
+  
+  console.log(prayerTimes.timings);
+}
+```
+
+## Integration with Prayer Times API
+
+```typescript
+import {
+  guessLocation,
+  guessCityCountry,
+  fetchTimingsByCity,
+  fetchTimingsByCoords,
+} from 'ramadan-cli';
+
+// Auto-detect and fetch prayer times
+const location = await guessLocation();
+
+if (location) {
+  const prayerTimes = await fetchTimingsByCity({
+    city: location.city,
+    country: location.country,
+    method: 2,
+  });
+  
+  console.log('Fajr:', prayerTimes.timings.Fajr);
+}
+
+// Or resolve city name and use coordinates
+const cityData = await guessCityCountry('Cairo');
+
+if (cityData) {
+  const prayerTimes = await fetchTimingsByCoords({
+    latitude: cityData.latitude,
+    longitude: cityData.longitude,
+    timezone: cityData.timezone,
+    method: 5, // Egypt method
+  });
+  
+  console.log('Maghrib:', prayerTimes.timings.Maghrib);
+}
+```
+
+## Error Handling
+
+Both functions return `null` on failure rather than throwing errors. Always check the return value:
+
+```typescript
+import { guessLocation } from 'ramadan-cli';
+
+const location = await guessLocation();
+
+if (!location) {
+  console.error('Failed to detect location');
+  // Handle error: prompt user, use default, etc.
+  return;
+}
+
+// Safe to use location here
+console.log(location.city);
+```
+
+## TypeScript Types
+
+```typescript
+interface GeoLocation {
+  readonly city: string;
+  readonly country: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly timezone: string;
+}
+
+interface CityCountryGuess {
+  readonly city: string;
+  readonly country: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly timezone?: string; // May be undefined
+}
+```
+
+## Privacy Considerations
+
+<Info>
+IP geolocation APIs typically collect:
+- User's IP address
+- Request timestamp
+- User agent information
+
+No personal data is sent by ramadan-cli. Users behind VPNs or proxies will see the VPN/proxy location.
+</Info>
+
+## Performance
+
+- `guessLocation`: ~500ms (tries up to 3 services)
+- `guessCityCountry`: ~200ms (single API call)
+
+Consider caching results to avoid repeated lookups:
+
+```typescript
+import { guessLocation } from 'ramadan-cli';
+
+let cachedLocation: Awaited<ReturnType<typeof guessLocation>> | null = null;
+
+async function getLocation() {
+  if (!cachedLocation) {
+    cachedLocation = await guessLocation();
+  }
+  return cachedLocation;
+}
+```

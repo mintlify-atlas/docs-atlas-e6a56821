@@ -1,0 +1,136 @@
+---
+title: 'Overview'
+description: 'Use Ramadan CLI as a TypeScript library in your applications'
+---
+
+## Installation
+
+Install ramadan-cli as a dependency in your project:
+
+```bash npm
+npm install ramadan-cli
+```
+
+```bash yarn
+yarn add ramadan-cli
+```
+
+```bash pnpm
+pnpm add ramadan-cli
+```
+
+## Programmatic Usage
+
+Ramadan CLI exports a complete TypeScript API that you can use in your applications. The package provides functions for:
+
+- **Prayer times**: Fetch prayer times by city, address, or coordinates
+- **Ramadan calendars**: Get full Ramadan calendar data (Gregorian or Hijri)
+- **Geolocation**: Auto-detect user location or resolve city/country queries
+- **Configuration**: Manage stored location and prayer calculation settings
+- **Calculation methods**: Access prayer time calculation methods
+
+## Quick Example
+
+```typescript
+import { fetchTimingsByCity } from 'ramadan-cli';
+
+const prayerData = await fetchTimingsByCity({
+  city: 'Lahore',
+  country: 'Pakistan',
+  method: 1, // Karachi method
+  school: 1, // Hanafi school
+});
+
+console.log(prayerData.timings.Fajr);    // "05:30"
+console.log(prayerData.timings.Maghrib); // "18:45"
+```
+
+## What's Exported
+
+The package exports all functions from these modules:
+
+```typescript
+export * from './api.js';              // Prayer times API
+export * from './geo.js';              // Geolocation functions
+export * from './ramadan-config.js';   // Configuration management
+export * from './recommendations.js';  // Method/school recommendations
+export * from './commands/index.js';   // CLI command functions
+```
+
+## API Sections
+
+<CardGroup cols={2}>
+  <Card title="Prayer Times" icon="clock" href="/api/prayer-times">
+    Fetch prayer times by city, address, or coordinates
+  </Card>
+  
+  <Card title="Geolocation" icon="location-dot" href="/api/geolocation">
+    Auto-detect location or resolve city queries
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/api/configuration">
+    Manage stored settings and preferences
+  </Card>
+  
+  <Card title="Types" icon="code" href="/api/types">
+    TypeScript interfaces and type definitions
+  </Card>
+</CardGroup>
+
+## Aladhan API Integration
+
+All prayer time functions use the [Aladhan Prayer Times API](https://aladhan.com/prayer-times-api) under the hood. The API:
+
+- Supports 20+ calculation methods for different regions
+- Provides both Gregorian and Hijri date information
+- Includes metadata about calculation method, school, and timezone
+- Returns all daily prayer times (Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha)
+
+## TypeScript Support
+
+Ramadan CLI is written in TypeScript and provides full type definitions for all exports. All API responses are validated at runtime using Zod schemas to ensure type safety.
+
+```typescript
+import type { PrayerData, PrayerTimings, HijriDate } from 'ramadan-cli';
+
+// All types are fully typed
+const data: PrayerData = await fetchTimingsByCity({
+  city: 'Istanbul',
+  country: 'Turkey',
+});
+
+const timings: PrayerTimings = data.timings;
+const hijriDate: HijriDate = data.date.hijri;
+```
+
+## Error Handling
+
+All API functions can throw errors. Use try-catch blocks for proper error handling:
+
+```typescript
+import { fetchTimingsByCity } from 'ramadan-cli';
+
+try {
+  const data = await fetchTimingsByCity({
+    city: 'Lahore',
+    country: 'Pakistan',
+  });
+  console.log(data.timings);
+} catch (error) {
+  if (error instanceof Error) {
+    console.error('Failed to fetch prayer times:', error.message);
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Prayer Times API" icon="book" href="/api/prayer-times">
+    Learn about all prayer time functions
+  </Card>
+  
+  <Card title="Geolocation API" icon="map" href="/api/geolocation">
+    Auto-detect user location
+  </Card>
+</CardGroup>

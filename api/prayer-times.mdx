@@ -1,0 +1,516 @@
+---
+title: 'Prayer Times'
+description: 'Fetch prayer times by city, address, or coordinates'
+---
+
+## Overview
+
+The prayer times API provides functions to fetch prayer times from the Aladhan API. All functions return prayer data including:
+
+- All daily prayer times (Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha)
+- Gregorian and Hijri date information
+- Calculation method and school metadata
+- Timezone and coordinate information
+
+## Fetch by City
+
+### fetchTimingsByCity
+
+Fetch prayer times for a specific city and country.
+
+```typescript
+import { fetchTimingsByCity } from 'ramadan-cli';
+
+const data = await fetchTimingsByCity({
+  city: 'Lahore',
+  country: 'Pakistan',
+  method: 1,  // Optional: Karachi method
+  school: 1,  // Optional: Hanafi school
+  date: new Date('2024-03-15'), // Optional: specific date
+});
+
+console.log(data.timings.Fajr);    // "05:30"
+console.log(data.timings.Maghrib); // "18:45"
+```
+
+<ParamField path="options" type="FetchByCityOptions" required>
+  Configuration object for fetching prayer times
+  
+  <Expandable title="properties">
+    <ParamField path="city" type="string" required>
+      City name (e.g., "Lahore", "Istanbul")
+    </ParamField>
+    
+    <ParamField path="country" type="string" required>
+      Country name (e.g., "Pakistan", "Turkey")
+    </ParamField>
+    
+    <ParamField path="method" type="number">
+      Calculation method ID (0-23). See [calculation methods](#calculation-methods)
+    </ParamField>
+    
+    <ParamField path="school" type="number">
+      Asr calculation school: `0` for Shafi (standard) or `1` for Hanafi (later Asr)
+    </ParamField>
+    
+    <ParamField path="date" type="Date">
+      Target date for prayer times. Defaults to current date
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="return" type="Promise<PrayerData>">
+  Returns a promise that resolves to prayer data
+</ResponseField>
+
+## Fetch by Address
+
+### fetchTimingsByAddress
+
+Fetch prayer times using a free-form address string. The API will geocode the address.
+
+```typescript
+import { fetchTimingsByAddress } from 'ramadan-cli';
+
+const data = await fetchTimingsByAddress({
+  address: 'San Francisco, CA, USA',
+  method: 2,  // ISNA method for North America
+  school: 0,  // Shafi school
+});
+```
+
+<ParamField path="options" type="FetchByAddressOptions" required>
+  <Expandable title="properties">
+    <ParamField path="address" type="string" required>
+      Free-form address string (e.g., "New York, USA", "123 Main St, London")
+    </ParamField>
+    
+    <ParamField path="method" type="number">
+      Calculation method ID (0-23)
+    </ParamField>
+    
+    <ParamField path="school" type="number">
+      Asr calculation school (0 or 1)
+    </ParamField>
+    
+    <ParamField path="date" type="Date">
+      Target date. Defaults to current date
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="return" type="Promise<PrayerData>">
+  Prayer data for the specified address
+</ResponseField>
+
+## Fetch by Coordinates
+
+### fetchTimingsByCoords
+
+Fetch prayer times using latitude and longitude coordinates.
+
+```typescript
+import { fetchTimingsByCoords } from 'ramadan-cli';
+
+const data = await fetchTimingsByCoords({
+  latitude: 31.5204,
+  longitude: 74.3587,
+  method: 1,
+  school: 1,
+  timezone: 'Asia/Karachi', // Optional but recommended
+});
+```
+
+<ParamField path="options" type="FetchByCoordsOptions" required>
+  <Expandable title="properties">
+    <ParamField path="latitude" type="number" required>
+      Latitude coordinate (-90 to 90)
+    </ParamField>
+    
+    <ParamField path="longitude" type="number" required>
+      Longitude coordinate (-180 to 180)
+    </ParamField>
+    
+    <ParamField path="method" type="number">
+      Calculation method ID
+    </ParamField>
+    
+    <ParamField path="school" type="number">
+      Asr calculation school
+    </ParamField>
+    
+    <ParamField path="timezone" type="string">
+      IANA timezone string (e.g., "Asia/Karachi", "America/New_York"). Recommended for accurate times
+    </ParamField>
+    
+    <ParamField path="date" type="Date">
+      Target date. Defaults to current date
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="return" type="Promise<PrayerData>">
+  Prayer data for the coordinates
+</ResponseField>
+
+## Next Prayer
+
+### fetchNextPrayer
+
+Fetch the next upcoming prayer time for today.
+
+```typescript
+import { fetchNextPrayer } from 'ramadan-cli';
+
+const data = await fetchNextPrayer({
+  latitude: 31.5204,
+  longitude: 74.3587,
+  method: 1,
+  timezone: 'Asia/Karachi',
+});
+
+console.log(data.nextPrayer);     // "Asr"
+console.log(data.nextPrayerTime); // "16:30"
+```
+
+<ParamField path="options" type="FetchNextPrayerOptions" required>
+  <Expandable title="properties">
+    <ParamField path="latitude" type="number" required>
+      Latitude coordinate
+    </ParamField>
+    
+    <ParamField path="longitude" type="number" required>
+      Longitude coordinate
+    </ParamField>
+    
+    <ParamField path="method" type="number">
+      Calculation method ID
+    </ParamField>
+    
+    <ParamField path="school" type="number">
+      Asr calculation school
+    </ParamField>
+    
+    <ParamField path="timezone" type="string">
+      IANA timezone string
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="return" type="Promise<NextPrayerData>">
+  Prayer data with next prayer information
+</ResponseField>
+
+## Ramadan Calendar
+
+### fetchCalendarByCity
+
+Fetch the entire Ramadan prayer calendar for a city.
+
+```typescript
+import { fetchCalendarByCity } from 'ramadan-cli';
+
+// Fetch Ramadan 1446 (full month)
+const calendar = await fetchCalendarByCity({
+  city: 'Istanbul',
+  country: 'Turkey',
+  year: 1446,  // Hijri year
+  month: 9,    // Optional: month number (9 = Ramadan)
+  method: 13,  // Turkey method
+});
+
+console.log(calendar.length); // 30 days
+console.log(calendar[0].timings.Fajr); // First day Fajr time
+```
+
+<ParamField path="options" type="FetchCalendarByCityOptions" required>
+  <Expandable title="properties">
+    <ParamField path="city" type="string" required>
+      City name
+    </ParamField>
+    
+    <ParamField path="country" type="string" required>
+      Country name
+    </ParamField>
+    
+    <ParamField path="year" type="number" required>
+      Gregorian year
+    </ParamField>
+    
+    <ParamField path="month" type="number">
+      Gregorian month (1-12). If omitted, returns entire year
+    </ParamField>
+    
+    <ParamField path="method" type="number">
+      Calculation method ID
+    </ParamField>
+    
+    <ParamField path="school" type="number">
+      Asr calculation school
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ResponseField name="return" type="Promise<ReadonlyArray<PrayerData>>">
+  Array of prayer data for each day
+</ResponseField>
+
+### fetchCalendarByAddress
+
+Fetch prayer calendar using an address string.
+
+```typescript
+import { fetchCalendarByAddress } from 'ramadan-cli';
+
+const calendar = await fetchCalendarByAddress({
+  address: 'London, UK',
+  year: 2024,
+  month: 3,  // March
+  method: 3, // MWL method
+});
+```
+
+<ParamField path="options" type="FetchCalendarByAddressOptions" required>
+  Same as `FetchCalendarByCityOptions` but with `address` instead of `city`/`country`
+</ParamField>
+
+### fetchHijriCalendarByCity
+
+Fetch Ramadan calendar using Hijri calendar date.
+
+```typescript
+import { fetchHijriCalendarByCity } from 'ramadan-cli';
+
+// Fetch Ramadan 1446
+const ramadan = await fetchHijriCalendarByCity({
+  city: 'Mecca',
+  country: 'Saudi Arabia',
+  year: 1446,  // Hijri year
+  month: 9,    // Ramadan (required for Hijri calendar)
+  method: 4,   // Umm al-Qura method
+});
+```
+
+<ParamField path="options" type="FetchHijriCalendarByCityOptions" required>
+  <Expandable title="properties">
+    <ParamField path="city" type="string" required>
+      City name
+    </ParamField>
+    
+    <ParamField path="country" type="string" required>
+      Country name
+    </ParamField>
+    
+    <ParamField path="year" type="number" required>
+      Hijri year
+    </ParamField>
+    
+    <ParamField path="month" type="number" required>
+      Hijri month (1-12, 9 = Ramadan)
+    </ParamField>
+    
+    <ParamField path="method" type="number">
+      Calculation method ID
+    </ParamField>
+    
+    <ParamField path="school" type="number">
+      Asr calculation school
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### fetchHijriCalendarByAddress
+
+Fetch Hijri calendar using an address.
+
+```typescript
+import { fetchHijriCalendarByAddress } from 'ramadan-cli';
+
+const ramadan = await fetchHijriCalendarByAddress({
+  address: 'Dubai, UAE',
+  year: 1446,
+  month: 9,
+  method: 16,
+});
+```
+
+## Calculation Methods
+
+### fetchMethods
+
+Get all available prayer time calculation methods.
+
+```typescript
+import { fetchMethods } from 'ramadan-cli';
+
+const methods = await fetchMethods();
+
+// Access specific method
+console.log(methods['2']);
+// {
+//   id: 2,
+//   name: "Islamic Society of North America (ISNA)",
+//   params: { Fajr: 15, Isha: 15 }
+// }
+```
+
+<ResponseField name="return" type="Promise<MethodsResponse>">
+  Record mapping method IDs to calculation method details
+</ResponseField>
+
+### Common Calculation Methods
+
+<CodeGroup>
+```typescript North America
+const data = await fetchTimingsByCity({
+  city: 'New York',
+  country: 'USA',
+  method: 2, // ISNA
+});
+```
+
+```typescript UK/Europe
+const data = await fetchTimingsByCity({
+  city: 'London',
+  country: 'UK',
+  method: 3, // Muslim World League
+});
+```
+
+```typescript Pakistan/India
+const data = await fetchTimingsByCity({
+  city: 'Karachi',
+  country: 'Pakistan',
+  method: 1, // Karachi
+  school: 1, // Hanafi
+});
+```
+
+```typescript Saudi Arabia
+const data = await fetchTimingsByCity({
+  city: 'Riyadh',
+  country: 'Saudi Arabia',
+  method: 4, // Umm al-Qura
+});
+```
+
+```typescript Turkey
+const data = await fetchTimingsByCity({
+  city: 'Istanbul',
+  country: 'Turkey',
+  method: 13, // Turkey
+});
+```
+</CodeGroup>
+
+## Qibla Direction
+
+### fetchQibla
+
+Get the Qibla direction (bearing to Mecca) for any location.
+
+```typescript
+import { fetchQibla } from 'ramadan-cli';
+
+const qibla = await fetchQibla(31.5204, 74.3587);
+
+console.log(qibla.direction); // 255.88 (degrees from North)
+console.log(qibla.latitude);  // Input latitude
+console.log(qibla.longitude); // Input longitude
+```
+
+<ParamField path="latitude" type="number" required>
+  Latitude coordinate
+</ParamField>
+
+<ParamField path="longitude" type="number" required>
+  Longitude coordinate
+</ParamField>
+
+<ResponseField name="return" type="Promise<QiblaData>">
+  Qibla direction data
+  
+  <Expandable title="properties">
+    <ResponseField name="latitude" type="number">
+      Input latitude
+    </ResponseField>
+    
+    <ResponseField name="longitude" type="number">
+      Input longitude
+    </ResponseField>
+    
+    <ResponseField name="direction" type="number">
+      Qibla bearing in degrees from North (0-360)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Method IDs Reference
+
+| ID | Method Name | Region |
+|----|-------------|--------|
+| 0 | Jafari (Shia Ithna-Ashari) | Shia communities |
+| 1 | University of Islamic Sciences, Karachi | Pakistan, Bangladesh, India |
+| 2 | Islamic Society of North America (ISNA) | North America |
+| 3 | Muslim World League (MWL) | Europe, worldwide |
+| 4 | Umm al-Qura University, Makkah | Saudi Arabia |
+| 5 | Egyptian General Authority of Survey | Egypt, Middle East |
+| 7 | Institute of Geophysics, University of Tehran | Iran |
+| 8 | Gulf Region | Gulf states |
+| 9 | Kuwait | Kuwait |
+| 10 | Qatar | Qatar |
+| 11 | Majlis Ugama Islam Singapura | Singapore |
+| 12 | Union Organization Islamic de France | France |
+| 13 | Diyanet İşleri Başkanlığı | Turkey |
+| 14 | Spiritual Administration of Muslims of Russia | Russia |
+| 15 | Moonsighting Committee Worldwide | Various |
+| 16 | Dubai | UAE |
+| 17 | Jabatan Kemajuan Islam Malaysia (JAKIM) | Malaysia, Brunei |
+| 18 | Tunisia | Tunisia |
+| 19 | Algeria | Algeria |
+| 20 | KEMENAG - Indonesia | Indonesia |
+| 21 | Morocco | Morocco |
+| 22 | Comunidade Islamica de Lisboa | Portugal |
+| 23 | Jordan | Jordan |
+
+## Example: Full Integration
+
+```typescript
+import {
+  fetchTimingsByCity,
+  fetchCalendarByCity,
+  fetchQibla,
+  guessLocation,
+  type PrayerData,
+} from 'ramadan-cli';
+
+// Auto-detect location
+const location = await guessLocation();
+
+if (location) {
+  // Get today's prayer times
+  const todayPrayers = await fetchTimingsByCity({
+    city: location.city,
+    country: location.country,
+    method: 2,
+  });
+  
+  console.log('Fajr:', todayPrayers.timings.Fajr);
+  console.log('Maghrib:', todayPrayers.timings.Maghrib);
+  
+  // Get Ramadan calendar
+  const ramadan = await fetchCalendarByCity({
+    city: location.city,
+    country: location.country,
+    year: 2024,
+    month: 3,
+    method: 2,
+  });
+  
+  console.log(`Ramadan has ${ramadan.length} days`);
+  
+  // Get Qibla direction
+  const qibla = await fetchQibla(location.latitude, location.longitude);
+  console.log(`Qibla: ${qibla.direction}°`);
+}
+```

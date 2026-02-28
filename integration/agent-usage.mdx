@@ -1,0 +1,376 @@
+---
+title: "Agent Usage"
+description: "Use ramadan-cli as an agent skill for automated workflows and AI-powered tools"
+icon: "robot"
+---
+
+## Overview
+
+Ramadan CLI is built for both humans and agents. It can be installed as a skill package for coding agents and AI tools, providing programmatic access to Ramadan prayer times with multiple output formats.
+
+## Installation
+
+### Installing as a Skill
+
+Add ramadan-cli to your agent's skill registry:
+
+```bash
+npx skills add ahmadawais/ramadan-cli
+```
+
+This installs the CLI as a skill package that agents can invoke to retrieve Sehar and Iftar timings.
+
+### Manual Installation
+
+For direct integration:
+
+```bash
+npm install -g ramadan-cli@latest
+```
+
+## Agent-Friendly Features
+
+<CardGroup cols={2}>
+  <Card title="JSON Output" icon="brackets-curly">
+    Structured JSON format for parsing and processing
+  </Card>
+  <Card title="Status Line Mode" icon="terminal">
+    Single-line output perfect for status bars
+  </Card>
+  <Card title="Non-Interactive Config" icon="gear">
+    Programmatic configuration without prompts
+  </Card>
+  <Card title="Isolated State" icon="folder-tree">
+    Environment variable for isolated config storage
+  </Card>
+</CardGroup>
+
+## Isolated Configuration
+
+<Note>
+Always isolate config in automation to avoid polluting user or global state.
+</Note>
+
+Use the `RAMADAN_CLI_CONFIG_DIR` environment variable to specify an isolated config directory:
+
+```bash
+# Create isolated config directory
+TMP_CFG="/tmp/ramadan-cli-agent"
+mkdir -p "$TMP_CFG"
+
+# Run with isolated config
+RAMADAN_CLI_CONFIG_DIR="$TMP_CFG" ramadan-cli sf
+RAMADAN_CLI_CONFIG_DIR="$TMP_CFG" ramadan-cli --json
+```
+
+### Reset Isolated State
+
+```bash
+RAMADAN_CLI_CONFIG_DIR="$TMP_CFG" ramadan-cli reset
+```
+
+## Non-Interactive Configuration
+
+Configure the CLI programmatically without interactive prompts:
+
+<Steps>
+  <Step title="Set Location and Settings">
+    Use the `config` command with flags to set all required parameters:
+
+    ```bash
+    ramadan-cli config \
+      --city "San Francisco" \
+      --country "United States" \
+      --latitude 37.7749 \
+      --longitude -122.4194 \
+      --method 2 \
+      --school 0 \
+      --timezone "America/Los_Angeles"
+    ```
+  </Step>
+
+  <Step title="Verify Configuration">
+    Check the saved configuration:
+
+    ```bash
+    ramadan-cli config --show
+    ```
+  </Step>
+
+  <Step title="Use the Configuration">
+    All subsequent commands will use the saved settings:
+
+    ```bash
+    ramadan-cli --json
+    ramadan-cli -s
+    ```
+  </Step>
+</Steps>
+
+### Config Management
+
+<CodeGroup>
+```bash Show Config
+ramadan-cli config --show
+```
+
+```bash Clear Config
+ramadan-cli config --clear
+```
+
+```bash Update Specific Settings
+ramadan-cli config --method 2 --school 0
+```
+</CodeGroup>
+
+## Agent Usage Patterns
+
+### Query Without Saved Config
+
+Agents can query specific cities without saving configuration:
+
+```bash
+# One-off city query
+ramadan-cli "Lahore" --json
+ramadan-cli sf --status
+ramadan-cli "Dubai, UAE" --json
+```
+
+<Note>
+One-off city queries do not overwrite saved default location.
+</Note>
+
+### Handling Interactive Prompts
+
+The CLI behavior depends on the output mode:
+
+<Tabs>
+  <Tab title="JSON Mode">
+    Automatically skips interactive setup:
+
+    ```bash
+    # No prompts, even on first run
+    ramadan-cli --json
+    ```
+
+    Falls back to IP geolocation if no config exists.
+  </Tab>
+
+  <Tab title="Status Mode">
+    Automatically skips interactive setup:
+
+    ```bash
+    # No prompts, silent failure
+    ramadan-cli --status
+    ```
+
+    Returns no output if location cannot be detected.
+  </Tab>
+
+  <Tab title="Standard Mode">
+    Will prompt interactively if:
+    - Running in a TTY
+    - No config exists
+    - No city is specified
+
+    Agents should use `--json` or configure explicitly.
+  </Tab>
+</Tabs>
+
+## Exit Codes and Error Handling
+
+The CLI uses standard exit codes for automation:
+
+| Exit Code | Meaning |
+|-----------|----------|
+| `0` | Success |
+| `1` | Runtime failure (network/API/validation/data) |
+
+### Error Handling in Scripts
+
+```bash
+#!/bin/bash
+
+# Check if ramadan-cli is available
+if ! command -v ramadan-cli &> /dev/null; then
+    echo "ramadan-cli not found"
+    exit 1
+fi
+
+# Fetch data with error handling
+if OUTPUT=$(ramadan-cli --json 2>&1); then
+    echo "Success: $OUTPUT"
+else
+    echo "Failed to fetch Ramadan timings"
+    exit 1
+fi
+```
+
+### JSON Error Format
+
+When using `--json`, errors are written to `stderr` as structured JSON:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "LOCATION_DETECTION_FAILED",
+    "message": "Could not detect location. Pass a city like `ramadan-cli \"Lahore\"`."
+  }
+}
+```
+
+<Accordion title="Error Codes Reference">
+  | Code | Description |
+  |------|-------------|
+  | `INVALID_FIRST_ROZA_DATE` | Invalid date format for `--first-roza-date` |
+  | `INVALID_FLAG_COMBINATION` | Conflicting flags (e.g., `--all` with `--number`) |
+  | `PRAYER_TIMES_FETCH_FAILED` | Could not fetch prayer times from API |
+  | `RAMADAN_CALENDAR_FETCH_FAILED` | Could not fetch Ramadan calendar |
+  | `LOCATION_DETECTION_FAILED` | Could not detect or resolve location |
+  | `ROZA_NOT_FOUND` | Specified roza number not found |
+  | `RAMADAN_CLI_ERROR` | General error |
+  | `UNKNOWN_ERROR` | Unexpected error occurred |
+</Accordion>
+
+## Example: Agent Integration
+
+Here's a complete example of integrating ramadan-cli into an agent workflow:
+
+<CodeGroup>
+```bash Setup Script
+#!/bin/bash
+set -e
+
+# Create isolated config directory
+CONFIG_DIR="/tmp/ramadan-agent-${RANDOM}"
+mkdir -p "$CONFIG_DIR"
+
+# Export for all subsequent commands
+export RAMADAN_CLI_CONFIG_DIR="$CONFIG_DIR"
+
+# Configure non-interactively
+ramadan-cli config \
+  --city "New York" \
+  --country "United States" \
+  --method 2 \
+  --school 0 \
+  --timezone "America/New_York"
+
+echo "Configuration complete"
+```
+
+```bash Query Script
+#!/bin/bash
+
+# Use the configured settings
+export RAMADAN_CLI_CONFIG_DIR="/tmp/ramadan-agent"
+
+# Get JSON output
+DATA=$(ramadan-cli --json)
+
+if [ $? -eq 0 ]; then
+    echo "$DATA" | jq '.rows[0]'
+else
+    echo "Failed to fetch data"
+    exit 1
+fi
+```
+
+```bash Cleanup Script
+#!/bin/bash
+
+# Reset the isolated config
+export RAMADAN_CLI_CONFIG_DIR="/tmp/ramadan-agent"
+ramadan-cli reset
+
+# Remove the directory
+rm -rf "$RAMADAN_CLI_CONFIG_DIR"
+```
+</CodeGroup>
+
+## Testing Agent Integration
+
+<Steps>
+  <Step title="Test Basic Invocation">
+    ```bash
+    ramadan-cli --help
+    ramadan-cli --version
+    ```
+  </Step>
+
+  <Step title="Test JSON Output">
+    ```bash
+    ramadan-cli sf --json | jq '.'
+    ```
+  </Step>
+
+  <Step title="Test Error Handling">
+    ```bash
+    # Invalid flag combination
+    ramadan-cli --all --number 5 2>&1
+    
+    # JSON error output
+    ramadan-cli --all --number 5 --json 2>&1 | jq '.error'
+    ```
+  </Step>
+
+  <Step title="Test Isolated Config">
+    ```bash
+    TMP_CFG="/tmp/test-config"
+    mkdir -p "$TMP_CFG"
+    RAMADAN_CLI_CONFIG_DIR="$TMP_CFG" ramadan-cli config --city "Toronto" --country "Canada"
+    RAMADAN_CLI_CONFIG_DIR="$TMP_CFG" ramadan-cli config --show
+    ```
+  </Step>
+</Steps>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Isolated Config Directories">
+    Always set `RAMADAN_CLI_CONFIG_DIR` to avoid interfering with user configuration:
+
+    ```bash
+    export RAMADAN_CLI_CONFIG_DIR="/tmp/my-agent-$(date +%s)"
+    ```
+  </Accordion>
+
+  <Accordion title="Prefer JSON Output">
+    Use `--json` for reliable parsing and to skip interactive prompts:
+
+    ```bash
+    ramadan-cli --json | jq -r '.rows[0].iftar'
+    ```
+  </Accordion>
+
+  <Accordion title="Handle Errors Gracefully">
+    Check exit codes and parse error JSON:
+
+    ```bash
+    if ! OUTPUT=$(ramadan-cli --json 2>&1); then
+        ERROR=$(echo "$OUTPUT" | jq -r '.error.message')
+        echo "Error: $ERROR"
+    fi
+    ```
+  </Accordion>
+
+  <Accordion title="Use Status Mode for Display">
+    For status bars and simple displays, use `--status`:
+
+    ```bash
+    ramadan-cli --status
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="JSON Output" icon="code" href="/integration/json-output">
+    Learn about the JSON output structure
+  </Card>
+  <Card title="Status Line Mode" icon="rectangle-terminal" href="/integration/status-bar">
+    Integrate with status bars and displays
+  </Card>
+</CardGroup>

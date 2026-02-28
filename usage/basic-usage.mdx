@@ -1,0 +1,283 @@
+---
+title: 'Basic Usage'
+description: 'Common usage patterns and examples for Ramadan CLI'
+icon: 'play'
+---
+
+## Quick Start
+
+Ramadan CLI provides Sehar and Iftar timings right in your terminal. The default command shows today's timings:
+
+```bash
+roza
+```
+
+On first run, you'll be guided through an interactive setup to configure your location and prayer calculation settings.
+
+## Checking Today's Timings
+
+The simplest way to check today's Sehar and Iftar times:
+
+```bash
+roza
+```
+
+**Example Output:**
+```
+  Today Sehar/Iftar
+  📍 San Francisco, United States
+
+  Roza    Sehar     Iftar     Date            Hijri
+  --------------------------------------------------------
+  15      5:45 AM   7:32 PM   18-03-2026      15 Ramadan 1447
+
+  Status: Roza in progress
+  Up next: Iftar in 3h 45m
+
+  Sehar uses Fajr. Iftar uses Maghrib.
+```
+
+## City-Specific Queries
+
+You can check timings for any city without changing your saved configuration:
+
+<Tabs>
+  <Tab title="City Name">
+    ```bash
+    roza "San Francisco"
+    roza lahore
+    roza vancouver
+    roza "Dera Ghazi Khan"
+    ```
+  </Tab>
+  <Tab title="City, Country">
+    ```bash
+    roza "San Francisco, United States"
+    roza "Lahore, Pakistan"
+    roza "Vancouver, Canada"
+    ```
+  </Tab>
+  <Tab title="City Aliases">
+    ```bash
+    # SF is aliased to San Francisco
+    roza sf
+    roza sf --all
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+Passing a city as an argument is a **one-off lookup** and does not overwrite your saved default location.
+</Note>
+
+## Viewing the Full Month
+
+View all 30 days of Ramadan at once:
+
+```bash
+roza --all
+roza -a
+roza "San Francisco" --all
+```
+
+**Example Output:**
+```
+  Ramadan 1447 (All Days)
+  📍 San Francisco, United States
+
+  Roza    Sehar     Iftar     Date            Hijri
+  -------------------------------------------------------------------------
+  1       5:30 AM   6:15 PM   01-03-2026      1 Ramadan 1447
+  2       5:29 AM   6:16 PM   02-03-2026      2 Ramadan 1447
+  3       5:28 AM   6:17 PM   03-03-2026      3 Ramadan 1447
+  ...
+  15      5:45 AM   7:32 PM   18-03-2026      15 Ramadan 1447  ← current
+  16      5:46 AM   7:33 PM   19-03-2026      16 Ramadan 1447  ← next
+  ...
+  30      6:00 AM   7:45 PM   30-03-2026      30 Ramadan 1447
+
+  Status: Roza in progress
+  Up next: Iftar in 3h 45m
+```
+
+## Checking Specific Days
+
+View timings for a specific roza day (1-30):
+
+```bash
+roza --number 10
+roza -n 15
+roza "Lahore" -n 27
+```
+
+**Example Output:**
+```
+  Roza 10 Sehar/Iftar
+  📍 Lahore, Pakistan
+
+  Roza    Sehar     Iftar     Date            Hijri
+  --------------------------------------------------------
+  10      5:15 AM   6:45 PM   10-03-2026      10 Ramadan 1447
+
+  Sehar uses Fajr. Iftar uses Maghrib.
+```
+
+<Warning>
+You cannot use `--all` and `--number` together. Choose one or the other.
+</Warning>
+
+## Status Bar Output
+
+For status bars, coding agents, or simple scripts, use the `--status` flag for single-line output:
+
+```bash
+roza --status
+roza -s
+roza -s --city Lahore
+```
+
+**Example Output:**
+```
+Iftar in 3h 45m
+```
+
+This outputs only the next event with countdown, perfect for:
+- Status bars (tmux, i3, waybar)
+- Coding agents and LLM tools
+- Shell scripts
+
+<Note>
+The `--status` flag silently fails if there's an error, making it safe for automated use.
+</Note>
+
+## Plain Text Output
+
+Disable the ASCII banner for cleaner output:
+
+```bash
+roza --plain
+roza -p
+```
+
+This replaces the decorative banner with "RAMADAN CLI" text.
+
+## JSON Output
+
+Get structured JSON output for programmatic use:
+
+```bash
+roza --json
+roza -j
+roza "San Francisco" --all --json
+```
+
+**Example Success Output:**
+```json
+{
+  "mode": "today",
+  "location": "San Francisco, United States",
+  "hijriYear": 1447,
+  "rows": [
+    {
+      "roza": 15,
+      "sehar": "5:45 AM",
+      "iftar": "7:32 PM",
+      "date": "18-03-2026",
+      "hijri": "15 Ramadan 1447"
+    }
+  ]
+}
+```
+
+**Example Error Output (stderr):**
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "LOCATION_DETECTION_FAILED",
+    "message": "Could not detect location. Pass a city like `ramadan-cli \"Lahore\"`."
+  }
+}
+```
+
+<Tip>
+JSON mode automatically skips interactive setup prompts, making it perfect for CI/CD and automated scripts.
+</Tip>
+
+## Exit Codes
+
+- `0` - Success
+- `1` - Runtime error, validation error, network failure, or data fetch failure
+
+## Common Usage Examples
+
+<CodeGroup>
+
+```bash Quick Check
+# Today's timings with saved location
+roza
+```
+
+```bash Different City
+# Check Lahore without changing saved config
+roza lahore
+```
+
+```bash Full Month
+# See entire Ramadan month
+roza --all
+```
+
+```bash Specific Day
+# Check the 27th night (Laylatul Qadr)
+roza -n 27
+```
+
+```bash Status Bar
+# For tmux or other status bars
+roza -s
+```
+
+```bash Script Integration
+# JSON output for scripts
+roza --json | jq '.rows[0].iftar'
+```
+
+</CodeGroup>
+
+## Understanding the Output
+
+### Time Semantics
+
+- **Sehar** = Fajr prayer time (when fasting begins)
+- **Iftar** = Maghrib prayer time (when fasting ends)
+- All times are displayed in 12-hour format with AM/PM
+
+### Status Indicators
+
+The CLI shows your current status:
+
+- **Before roza day** - Ramadan hasn't started yet
+- **Sehar window open** - You can eat suhoor
+- **Roza in progress** - Fasting is active
+- **Iftar time** - Time to break your fast
+
+### Row Annotations
+
+When viewing all days:
+- `← current` - Today's roza
+- `← next` - Tomorrow's roza
+
+## Using Different CLI Names
+
+All these commands work identically:
+
+```bash
+ramadan-cli
+roza
+ramzan
+ramazan
+ramadan
+```
+
+`roza` is the shortest and most convenient alias.

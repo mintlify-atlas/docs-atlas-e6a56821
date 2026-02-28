@@ -1,0 +1,313 @@
+---
+title: "Ramadan Calendar"
+description: "View full month Ramadan timings and select specific roza days"
+---
+
+Ramadan CLI provides flexible calendar viewing options, from viewing today's timings to browsing the entire Ramadan month or selecting specific roza days.
+
+## Default View: Today's Timings
+
+Without any flags, Ramadan CLI shows timings for the current day:
+
+```bash
+roza
+```
+
+**During Ramadan:**
+```
+📍 San Francisco, United States
+
+Roza  Sehar     Iftar     Date            Hijri
+------------------------------------------------------
+15    5:42 AM   7:23 PM   15-03-2026      15 Ramadan 1447 ← current
+
+Status: Roza in progress
+Up next: Iftar in 3h 45m
+```
+
+**Before Ramadan:**
+```
+📍 Lahore, Pakistan
+
+Roza  Sehar     Iftar     Date            Hijri
+------------------------------------------------------
+1     4:55 AM   6:10 PM   28-02-2026      1 Ramadan 1447 ← next
+```
+
+## Full Month View
+
+Use the `--all` or `-a` flag to display all 30 days of Ramadan:
+
+```bash
+roza --all
+roza -a
+```
+
+### Example Output
+
+```bash
+roza "Karachi, Pakistan" --all
+```
+
+```
+Ramadan 1447 (All Days)
+📍 Karachi, Pakistan
+
+Roza  Sehar     Iftar     Date            Hijri
+------------------------------------------------------------------------
+1     5:12 AM   6:15 PM   28-02-2026      1 Ramadan 1447 ← next
+2     5:12 AM   6:15 PM   01-03-2026      2 Ramadan 1447
+3     5:11 AM   6:16 PM   02-03-2026      3 Ramadan 1447
+4     5:11 AM   6:16 PM   03-03-2026      4 Ramadan 1447
+5     5:10 AM   6:17 PM   04-03-2026      5 Ramadan 1447
+...
+28    4:53 AM   6:31 PM   27-03-2026      28 Ramadan 1447
+29    4:52 AM   6:32 PM   28-03-2026      29 Ramadan 1447
+30    4:52 AM   6:32 PM   29-03-2026      30 Ramadan 1447
+
+Status: Before roza day
+Up next: First Sehar in 15d 8h 25m
+```
+
+### Calendar Annotations
+
+When viewing the full calendar, rows are annotated to show:
+
+- **`← current`**: The current roza (green) - only during Ramadan
+- **`← next`**: The next upcoming roza (yellow)
+
+<Info>
+  Annotations are automatically calculated based on:
+  - Current Hijri date (when using API-based dates)
+  - Custom first roza date (when using `--first-roza-date`)
+  - Your local timezone
+</Info>
+
+## Specific Roza Selection
+
+View timings for any specific roza day (1-30) using the `--number` or `-n` flag:
+
+```bash
+roza --number 15
+roza -n 27
+roza "Dubai" -n 1
+```
+
+### Example
+
+```bash
+roza -n 27
+```
+
+```
+Roza 27 Sehar/Iftar
+📍 San Francisco, United States
+
+Roza  Sehar     Iftar     Date            Hijri
+------------------------------------------------------
+27    5:28 AM   7:37 PM   26-03-2026      27 Ramadan 1447
+
+Status: Before roza day
+Up next: First Sehar in 12d 6h 15m
+```
+
+<Note>
+  The `--number` flag accepts values from 1 to 30, corresponding to the days of Ramadan.
+</Note>
+
+## Flag Validation
+
+You cannot combine `--all` and `--number` flags:
+
+```bash
+roza --all --number 10
+```
+
+❌ **Error:**
+```
+Use either --all or --number, not both.
+```
+
+## Calendar Data Sources
+
+### API-Based Calendar (Default)
+
+By default, Ramadan CLI fetches the Hijri calendar for Ramadan (month 9) from the Aladhan API:
+
+```typescript
+const fetchRamadanCalendar = async (
+  query: RamadanQuery,
+  year: number
+): Promise<ReadonlyArray<PrayerData>> => {
+  // Fetches Hijri month 9 (Ramadan) for the target year
+  // Uses address, city/country, or coordinates
+  // Applies calculation method and juristic school
+};
+```
+
+The target Hijri year is automatically determined:
+
+```typescript
+export const getTargetRamadanYear = (today: PrayerData): number => {
+  const hijriYear = Number.parseInt(today.date.hijri.year, 10);
+  const hijriMonth = today.date.hijri.month.number;
+  // If we're past Ramadan (month > 9), target next year
+  if (hijriMonth > 9) {
+    return hijriYear + 1;
+  }
+  return hijriYear;
+};
+```
+
+### Custom Date Calendar
+
+When using `--first-roza-date`, the calendar is built differently:
+
+```typescript
+const fetchCustomRamadanDays = async (
+  query: RamadanQuery,
+  firstRozaDate: Date
+): Promise<ReadonlyArray<PrayerData>> => {
+  const totalDays = 30;
+  const days = Array.from({ length: totalDays }, (_, index) =>
+    addDays(firstRozaDate, index)
+  );
+  return Promise.all(
+    days.map(async (dayDate) => fetchRamadanDay(query, dayDate))
+  );
+};
+```
+
+This fetches prayer times for 30 consecutive days starting from your specified date.
+
+## Calendar Features
+
+### Time Format
+
+All times are displayed in 12-hour format with AM/PM:
+
+```typescript
+export const to12HourTime = (value: string): string => {
+  const hour = parseInt(match[1], 10);
+  const minute = parseInt(match[2], 10);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const twelveHour = hour % 12 || 12;
+  return `${twelveHour}:${String(minute).padStart(2, '0')} ${period}`;
+};
+```
+
+### Date Columns
+
+Each row includes:
+
+- **Roza**: Day number (1-30)
+- **Sehar**: Fajr prayer time (start of fast)
+- **Iftar**: Maghrib prayer time (break fast)
+- **Date**: Gregorian date (DD-MM-YYYY)
+- **Hijri**: Islamic date with month name and year
+
+<Info>
+  **Sehar** uses the **Fajr** prayer time, and **Iftar** uses the **Maghrib** prayer time. This is the standard practice across most Muslim communities.
+</Info>
+
+## Combining with Other Flags
+
+### Calendar with Different Cities
+
+```bash
+# Full month for London
+roza "London, UK" --all
+
+# Specific roza for Mecca
+roza "Mecca, Saudi Arabia" -n 15
+```
+
+### Calendar with Custom First Date
+
+```bash
+# Set custom first roza date
+roza --first-roza-date 2026-03-01
+
+# View full custom calendar
+roza --all
+
+# View specific day in custom calendar
+roza -n 20
+```
+
+### Plain Text Output
+
+```bash
+# Calendar without ASCII banner
+roza --all --plain
+```
+
+### JSON Output
+
+Get structured calendar data:
+
+```bash
+roza --all --json
+```
+
+```json
+{
+  "mode": "all",
+  "location": "Lahore, Pakistan",
+  "hijriYear": 1447,
+  "rows": [
+    {
+      "roza": 1,
+      "sehar": "4:55 AM",
+      "iftar": "6:10 PM",
+      "date": "28-02-2026",
+      "hijri": "1 Ramadan 1447"
+    },
+    // ... 29 more days
+  ]
+}
+```
+
+## Performance Considerations
+
+When fetching the full calendar:
+
+<Steps>
+  <Step title="API-Based Calendar">
+    Makes a single API call to fetch all 30 days of Ramadan using the Hijri calendar endpoint.
+    
+    **Fast** ⚡ - Single HTTP request
+  </Step>
+  
+  <Step title="Custom Date Calendar">
+    Makes 30 parallel API calls to fetch prayer times for each individual day.
+    
+    **Slower** 🐌 - 30 HTTP requests (but executed in parallel)
+  </Step>
+</Steps>
+
+<Warning>
+  Using `--first-roza-date` with `--all` will make 30 API requests. This is slower but ensures accurate prayer times for your custom date range.
+</Warning>
+
+## City Aliases
+
+Ramadan CLI supports convenient city aliases:
+
+```typescript
+const CITY_ALIAS_MAP: Record<string, string> = {
+  sf: 'San Francisco',
+};
+```
+
+```bash
+roza sf --all
+# Equivalent to:
+roza "San Francisco" --all
+```
+
+## Related Features
+
+- [Location Detection](/features/location-detection) - How your location is determined
+- [Custom First Roza](/features/custom-first-roza) - Override Ramadan start date
+- [Output Modes](/features/output-modes) - JSON, status line, and plain text formats

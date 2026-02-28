@@ -1,0 +1,586 @@
+---
+title: "Status Line Mode"
+description: "Single-line output for status bars, tmux, polybar, and coding agents"
+icon: "rectangle-terminal"
+---
+
+## Overview
+
+The `--status` (or `-s`) flag provides a single-line output showing the next upcoming prayer event with a countdown. This mode is perfect for status bars, coding agents, and minimal displays.
+
+## Basic Usage
+
+```bash
+ramadan-cli --status
+ramadan-cli -s
+```
+
+**Example Output:**
+```
+Iftar in 2h 30m
+```
+
+<Note>
+Status mode is completely non-interactive and silent on failure. It's designed to never interrupt your workflow.
+</Note>
+
+## Output Format
+
+The status line shows the next prayer event with time remaining:
+
+```
+{Event} in {Countdown}
+```
+
+### Possible Event Labels
+
+<Tabs>
+  <Tab title="Regular Events">
+    | Label | Meaning |
+    |-------|----------|
+    | `Sehar` | Sehar window (Fajr) is upcoming |
+    | `Fast starts` | Roza (fast) is about to begin |
+    | `Iftar` | Iftar (Maghrib) is upcoming |
+  </Tab>
+
+  <Tab title="Edge Cases">
+    | Label | When It Appears |
+    |-------|------------------|
+    | `First Sehar` | Before Ramadan starts (shows first Sehar) |
+    | `Sehar` | Next day's Sehar (after Iftar) |
+  </Tab>
+</Tabs>
+
+### Countdown Format
+
+<CardGroup cols={3}>
+  <Card title="Hours and Minutes">
+    ```
+    2h 30m
+    ```
+    When more than 1 hour remains
+  </Card>
+  
+  <Card title="Minutes Only">
+    ```
+    45m
+    ```
+    When less than 1 hour remains
+  </Card>
+  
+  <Card title="Final Minutes">
+    ```
+    5m
+    ```
+    When very close to the event
+  </Card>
+</CardGroup>
+
+## Status Bar Integration
+
+### tmux
+
+Add Ramadan timings to your tmux status bar:
+
+<CodeGroup>
+```bash .tmux.conf
+# Add to your tmux configuration
+set -g status-right '#(ramadan-cli -s) | %H:%M'
+set -g status-interval 60
+```
+
+```bash With Colors
+set -g status-right '#[fg=green]🌙 #(ramadan-cli -s)#[default] | %H:%M'
+set -g status-interval 60
+```
+
+```bash Full Status Line
+set -g status-right '#{?window_bigger,[#{window_offset_x}#,#{window_offset_y}] ,}#[fg=yellow]#(ramadan-cli -s)#[default] #[fg=cyan]%d %b#[default] #[fg=white]%H:%M#[default]'
+set -g status-interval 60
+```
+</CodeGroup>
+
+<Tip>
+Set `status-interval` to 60 seconds to update the countdown every minute.
+</Tip>
+
+### Polybar
+
+Integrate with Polybar status bar:
+
+<CodeGroup>
+```ini Module Definition
+[module/ramadan]
+type = custom/script
+exec = ramadan-cli -s
+interval = 60
+format = 🌙 <label>
+format-foreground = #81F096
+```
+
+```ini In Bar Config
+[bar/main]
+modules-right = ramadan cpu memory date
+```
+
+```ini With Click Action
+[module/ramadan]
+type = custom/script
+exec = ramadan-cli -s
+interval = 60
+click-left = terminal -e ramadan-cli
+format = 🌙 <label>
+```
+</CodeGroup>
+
+### i3status
+
+Add to i3status configuration:
+
+<CodeGroup>
+```python i3status Config
+order += "tztime ramadan"
+
+tztime ramadan {
+    format = "🌙 %Y-%m-%d %H:%M:%S"
+    hide_if_equals_localtime = true
+}
+```
+
+```bash Using i3blocks
+[ramadan]
+command=ramadan-cli -s
+interval=60
+label=🌙 
+color=#81F096
+```
+</CodeGroup>
+
+### Waybar
+
+For Wayland users with Waybar:
+
+```json
+{
+  "custom/ramadan": {
+    "exec": "ramadan-cli -s",
+    "interval": 60,
+    "format": "🌙 {}",
+    "on-click": "alacritty -e ramadan-cli",
+    "tooltip": false
+  }
+}
+```
+
+## Terminal Integration
+
+### Shell Prompt (PS1)
+
+Add to your shell prompt:
+
+<CodeGroup>
+```bash Bash (.bashrc)
+# Add Ramadan timing to prompt
+export PS1='\[\033[32m\]$(ramadan-cli -s 2>/dev/null)\[\033[0m\] \w $ '
+```
+
+```bash Zsh (.zshrc)
+# Add to right prompt
+RPS1='%F{green}$(ramadan-cli -s 2>/dev/null)%f'
+```
+
+```bash Fish (config.fish)
+# Add to right prompt
+function fish_right_prompt
+    set_color green
+    ramadan-cli -s 2>/dev/null
+    set_color normal
+end
+```
+</CodeGroup>
+
+<Warning>
+Shell prompts execute on every command. Consider caching to avoid repeated CLI calls:
+
+```bash
+function _ramadan_cached() {
+    local cache_file="/tmp/ramadan-status-$USER"
+    if [ ! -f "$cache_file" ] || [ $(find "$cache_file" -mmin +1) ]; then
+        ramadan-cli -s 2>/dev/null > "$cache_file"
+    fi
+    cat "$cache_file" 2>/dev/null
+}
+
+export PS1='$(\[\033[32m\]_ramadan_cached\[\033[0m\]) \w $ '
+```
+</Warning>
+
+## Coding Agent Integration
+
+### VS Code Status Bar
+
+Create a VS Code extension:
+
+```javascript
+const vscode = require('vscode');
+const { exec } = require('child_process');
+
+let statusBarItem;
+
+function activate(context) {
+    statusBarItem = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right,
+        100
+    );
+    statusBarItem.text = '🌙 Loading...';
+    statusBarItem.show();
+    
+    updateStatus();
+    setInterval(updateStatus, 60000); // Update every minute
+}
+
+function updateStatus() {
+    exec('ramadan-cli -s', (error, stdout, stderr) => {
+        if (!error && stdout) {
+            statusBarItem.text = `🌙 ${stdout.trim()}`;
+        } else {
+            statusBarItem.text = '🌙 Ramadan';
+        }
+    });
+}
+
+module.exports = { activate };
+```
+
+### JetBrains IDEs
+
+For IntelliJ, PyCharm, WebStorm, etc.:
+
+```kotlin
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.wm.StatusBar
+import com.intellij.openapi.wm.StatusBarWidget
+import java.io.BufferedReader
+import java.io.InputStreamReader
+
+class RamadanStatusWidget(project: Project) : StatusBarWidget {
+    override fun ID(): String = "RamadanStatus"
+    
+    override fun getPresentation(): StatusBarWidget.WidgetPresentation {
+        return object : StatusBarWidget.TextPresentation {
+            override fun getText(): String {
+                return try {
+                    val process = Runtime.getRuntime().exec("ramadan-cli -s")
+                    val reader = BufferedReader(InputStreamReader(process.inputStream))
+                    val output = reader.readLine() ?: "Ramadan"
+                    "🌙 $output"
+                } catch (e: Exception) {
+                    "🌙 Ramadan"
+                }
+            }
+            
+            override fun getTooltipText(): String = "Ramadan prayer times"
+        }
+    }
+}
+```
+
+### Neovim/Vim Statusline
+
+<CodeGroup>
+```vim Vim
+" In .vimrc or init.vim
+function! RamadanStatus()
+    let status = system('ramadan-cli -s 2>/dev/null')
+    return substitute(status, '\n', '', 'g')
+endfunction
+
+set statusline=%{RamadanStatus()}\ %f\ %m\ %r
+```
+
+```lua Neovim (Lua)
+-- In init.lua
+local function ramadan_status()
+    local handle = io.popen('ramadan-cli -s 2>/dev/null')
+    local result = handle:read('*a')
+    handle:close()
+    return result:gsub('%s+$', '')
+end
+
+-- Using lualine
+require('lualine').setup({
+    sections = {
+        lualine_x = { ramadan_status, 'encoding', 'fileformat', 'filetype' },
+    }
+})
+```
+</CodeGroup>
+
+## Location Override
+
+Use `--city` to query a different location in status mode:
+
+```bash
+ramadan-cli -s --city Lahore
+ramadan-cli -s --city "Dubai, UAE"
+ramadan-cli -s --city sf
+```
+
+<Tip>
+One-off city queries don't overwrite your saved default location.
+</Tip>
+
+## Error Handling
+
+### Silent Failure Behavior
+
+Status mode fails silently by design:
+
+```bash
+# No output on error
+ramadan-cli -s
+echo $?  # Exit code still returns 0
+```
+
+<Note>
+This prevents error messages from cluttering your status bar.
+</Note>
+
+### Fallback Display
+
+Provide a fallback for when status mode fails:
+
+<CodeGroup>
+```bash Shell Script
+RAMADAN_STATUS=$(ramadan-cli -s 2>/dev/null)
+if [ -z "$RAMADAN_STATUS" ]; then
+    echo "Ramadan"
+else
+    echo "$RAMADAN_STATUS"
+fi
+```
+
+```javascript JavaScript
+const { execSync } = require('child_process');
+
+try {
+    const status = execSync('ramadan-cli -s', { 
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'ignore']
+    }).trim();
+    console.log(status || 'Ramadan');
+} catch (error) {
+    console.log('Ramadan');
+}
+```
+
+```python Python
+import subprocess
+
+try:
+    result = subprocess.run(
+        ['ramadan-cli', '-s'],
+        capture_output=True,
+        text=True,
+        timeout=5
+    )
+    print(result.stdout.strip() or 'Ramadan')
+except Exception:
+    print('Ramadan')
+```
+</CodeGroup>
+
+## Performance Optimization
+
+### Caching Strategy
+
+Since countdowns change every minute, cache for 60 seconds:
+
+```bash
+#!/bin/bash
+
+CACHE_FILE="/tmp/ramadan-status-cache"
+CACHE_TIME=60  # seconds
+
+if [ -f "$CACHE_FILE" ]; then
+    AGE=$(($(date +%s) - $(stat -f %m "$CACHE_FILE" 2>/dev/null || stat -c %Y "$CACHE_FILE")))
+    if [ $AGE -lt $CACHE_TIME ]; then
+        cat "$CACHE_FILE"
+        exit 0
+    fi
+fi
+
+# Update cache
+ramadan-cli -s 2>/dev/null | tee "$CACHE_FILE"
+```
+
+### Background Updates
+
+Use a background process to keep the cache warm:
+
+```bash
+#!/bin/bash
+
+# Start in background
+(
+    while true; do
+        ramadan-cli -s > /tmp/ramadan-status-cache 2>/dev/null
+        sleep 60
+    done
+) &
+
+echo $! > /tmp/ramadan-status-pid
+```
+
+## Complete Examples
+
+### Minimal tmux Setup
+
+```bash
+# ~/.tmux.conf
+set -g status-right '🌙 #(ramadan-cli -s 2>/dev/null || echo "Ramadan") | %H:%M '
+set -g status-interval 60
+```
+
+### Polybar with Tooltip
+
+```ini
+[module/ramadan]
+type = custom/script
+exec = ramadan-cli -s 2>/dev/null || echo "Ramadan"
+interval = 60
+format = <label>
+format-prefix = "🌙 "
+format-prefix-foreground = #81F096
+click-left = notify-send "Ramadan" "$(ramadan-cli)"
+```
+
+### Shell Script Widget
+
+```bash
+#!/bin/bash
+# ramadan-widget.sh
+
+set -euo pipefail
+
+CACHE="/tmp/ramadan-widget-$USER"
+
+# Check cache (1 minute)
+if [ -f "$CACHE" ]; then
+    if [ $(($(date +%s) - $(stat -c %Y "$CACHE"))) -lt 60 ]; then
+        cat "$CACHE"
+        exit 0
+    fi
+fi
+
+# Update and cache
+OUTPUT=$(ramadan-cli -s 2>/dev/null || echo "Ramadan")
+echo "$OUTPUT" > "$CACHE"
+echo "$OUTPUT"
+```
+
+## Testing
+
+<Steps>
+  <Step title="Test Basic Output">
+    ```bash
+    ramadan-cli -s
+    ```
+    Should output a single line with no errors.
+  </Step>
+
+  <Step title="Test with Location">
+    ```bash
+    ramadan-cli -s --city "New York"
+    ramadan-cli -s --city lahore
+    ```
+  </Step>
+
+  <Step title="Test Error Handling">
+    ```bash
+    # Should produce no output
+    ramadan-cli -s --city "InvalidCity12345"
+    echo $?  # Should be 0
+    ```
+  </Step>
+
+  <Step title="Test in Status Bar">
+    Add to your status bar config and reload:
+    ```bash
+    # For tmux
+    tmux source-file ~/.tmux.conf
+    
+    # For polybar
+    pkill -USR1 polybar
+    ```
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="No output appears">
+    - Check if ramadan-cli is installed: `which ramadan-cli`
+    - Test manually: `ramadan-cli -s`
+    - Check exit code: `ramadan-cli -s; echo $?`
+    - Verify PATH in status bar environment
+  </Accordion>
+
+  <Accordion title="Output is too long">
+    The status line is designed to be concise. Maximum length is around 20-30 characters:
+    ```
+    Iftar in 12h 45m  # Longest typical output
+    ```
+    
+    If truncated, adjust your status bar width settings.
+  </Accordion>
+
+  <Accordion title="Status doesn't update">
+    - Check refresh interval in your status bar config
+    - Verify the CLI is being called each time
+    - Try clearing any caches: `rm /tmp/ramadan-*`
+  </Accordion>
+
+  <Accordion title="Wrong timezone displayed">
+    Configure timezone explicitly:
+    ```bash
+    ramadan-cli config --timezone "America/New_York"
+    ```
+    
+    Then test:
+    ```bash
+    ramadan-cli -s
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Cache Aggressively" icon="clock">
+    Update every 60 seconds, not on every display refresh
+  </Card>
+  
+  <Card title="Handle Failures" icon="shield">
+    Always provide a fallback display value
+  </Card>
+  
+  <Card title="Suppress Errors" icon="bell-slash">
+    Redirect stderr to /dev/null in status bars
+  </Card>
+  
+  <Card title="Keep It Simple" icon="minimize">
+    Status line is for quick glances, not detailed info
+  </Card>
+</CardGroup>
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="JSON Output" icon="code" href="/integration/json-output">
+    Structured output for advanced integrations
+  </Card>
+  <Card title="Agent Usage" icon="robot" href="/integration/agent-usage">
+    Using ramadan-cli in automated workflows
+  </Card>
+</CardGroup>

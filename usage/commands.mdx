@@ -1,0 +1,454 @@
+---
+title: 'Commands'
+description: 'Complete reference for all Ramadan CLI commands'
+icon: 'terminal'
+---
+
+## Main Command
+
+The main command displays Sehar and Iftar timings for Ramadan.
+
+### Syntax
+
+```bash
+ramadan-cli [city] [options]
+roza [city] [options]
+```
+
+### Arguments
+
+<ParamField path="city" type="string" optional>
+  City name for one-off lookup. Does not overwrite saved configuration.
+  
+  **Examples:**
+  - `"San Francisco"`
+  - `"sf"` (alias for San Francisco)
+  - `"Lahore"`
+  - `"Vancouver"`
+  - `"San Francisco, United States"` (city, country format)
+</ParamField>
+
+### Behavior
+
+By default (no flags), shows today's Sehar and Iftar timing:
+
+```bash
+roza
+```
+
+<Note>
+On first run with a TTY, the CLI launches an interactive setup to configure your location, calculation method, and school.
+</Note>
+
+### Options
+
+See [Flags and Options](/usage/flags-and-options) for complete flag documentation.
+
+### Examples
+
+<CodeGroup>
+
+```bash Default (Today)
+# Show today's timings
+roza
+```
+
+```bash Specific City
+# One-off city lookup
+roza "San Francisco"
+roza lahore
+roza sf
+```
+
+```bash Full Month
+# All 30 days
+roza --all
+roza "Lahore" -a
+```
+
+```bash Specific Day
+# Show roza 15
+roza --number 15
+roza -n 27
+```
+
+```bash Status Line
+# Next event only
+roza --status
+roza -s
+```
+
+```bash JSON Output
+# Structured output
+roza --json
+roza "Vancouver" --all --json
+```
+
+</CodeGroup>
+
+---
+
+## Reset Command
+
+Clear all saved Ramadan CLI configuration.
+
+### Syntax
+
+```bash
+ramadan-cli reset
+roza reset
+```
+
+### What It Clears
+
+The `reset` command removes:
+- Saved location (city, country, latitude, longitude)
+- Saved prayer settings (method, school, timezone)
+- Custom first roza date override
+
+### Example
+
+```bash
+roza reset
+```
+
+**Output:**
+```
+Configuration reset.
+```
+
+After reset, the next run will:
+1. Attempt auto-detection via IP geolocation
+2. Or prompt for interactive setup (if TTY available)
+3. Or require you to pass a city explicitly
+
+### When to Use Reset
+
+<Tabs>
+  <Tab title="Traveling">
+    Reset when you've moved to a new location and want to reconfigure:
+    ```bash
+    roza reset
+    roza  # Will prompt for new location
+    ```
+  </Tab>
+  <Tab title="Testing">
+    Reset to test first-run setup experience:
+    ```bash
+    roza reset
+    roza --city "Lahore"  # One-off lookup
+    ```
+  </Tab>
+  <Tab title="Fixing Issues">
+    Reset if your saved config is causing issues:
+    ```bash
+    roza reset
+    roza config --city "San Francisco" --country "United States"
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Reset is **permanent**. You'll need to reconfigure your location after using this command.
+</Warning>
+
+---
+
+## Config Command
+
+Manage saved configuration non-interactively.
+
+### Syntax
+
+```bash
+ramadan-cli config [options]
+roza config [options]
+```
+
+### Use Cases
+
+- Set configuration without interactive prompts
+- Update specific settings while keeping others
+- View current configuration
+- Clear all settings
+- Useful for scripts and automation
+
+### Setting Configuration
+
+Update one or more configuration values:
+
+```bash
+# Set location
+roza config --city "San Francisco" --country "United States"
+
+# Set coordinates
+roza config --latitude 37.7749 --longitude -122.4194
+
+# Set calculation method and school
+roza config --method 2 --school 0
+
+# Set timezone
+roza config --timezone "America/Los_Angeles"
+
+# Set multiple values at once
+roza config --city "Lahore" --country "Pakistan" --method 1 --school 1
+```
+
+### Viewing Configuration
+
+Display your current saved settings:
+
+```bash
+roza config --show
+```
+
+**Example Output:**
+```
+Current configuration:
+  City: San Francisco
+  Country: United States
+  Latitude: 37.7749
+  Longitude: -122.4194
+  Method: 2
+  School: 0
+  Timezone: America/Los_Angeles
+  First Roza Date: 2026-02-19
+```
+
+### Clearing Configuration
+
+Remove all saved settings:
+
+```bash
+roza config --clear
+```
+
+**Output:**
+```
+Configuration cleared.
+```
+
+<Note>
+This is equivalent to `roza reset`.
+</Note>
+
+### Options
+
+<ParamField path="--city" type="string">
+  Save city name
+  
+  **Example:** `--city "San Francisco"`
+</ParamField>
+
+<ParamField path="--country" type="string">
+  Save country name
+  
+  **Example:** `--country "United States"`
+</ParamField>
+
+<ParamField path="--latitude" type="number">
+  Save latitude coordinate (-90 to 90)
+  
+  **Example:** `--latitude 37.7749`
+  
+  **Validation:** Must be between -90 and 90
+</ParamField>
+
+<ParamField path="--longitude" type="number">
+  Save longitude coordinate (-180 to 180)
+  
+  **Example:** `--longitude -122.4194`
+  
+  **Validation:** Must be between -180 and 180
+</ParamField>
+
+<ParamField path="--method" type="number">
+  Save calculation method (0-23)
+  
+  **Example:** `--method 2`
+  
+  **Validation:** Must be an integer from 0 to 23
+  
+  See [Aladhan API Methods](https://aladhan.com/prayer-times-api#methods) for method IDs.
+</ParamField>
+
+<ParamField path="--school" type="number">
+  Save juristic school for Asr calculation
+  
+  **Values:**
+  - `0` - Shafi, Maliki, Hanbali, Jafari
+  - `1` - Hanafi
+  
+  **Example:** `--school 0`
+  
+  **Validation:** Must be 0 or 1
+</ParamField>
+
+<ParamField path="--timezone" type="string">
+  Save timezone identifier
+  
+  **Example:** `--timezone "America/Los_Angeles"`
+  
+  Use standard IANA timezone identifiers like:
+  - `America/Los_Angeles`
+  - `Asia/Karachi`
+  - `America/Vancouver`
+  - `Europe/London`
+</ParamField>
+
+<ParamField path="--show" type="boolean">
+  Display current configuration
+  
+  **Example:** `roza config --show`
+</ParamField>
+
+<ParamField path="--clear" type="boolean">
+  Clear all saved configuration
+  
+  **Example:** `roza config --clear`
+</ParamField>
+
+### Configuration Behavior
+
+#### Merging Updates
+
+When you update config values, they **merge** with existing settings:
+
+```bash
+# Initial setup
+roza config --city "San Francisco" --country "United States" --method 2
+
+# Later update - only changes method, keeps city and country
+roza config --method 15
+
+# View merged result
+roza config --show
+# City: San Francisco (kept)
+# Country: United States (kept)
+# Method: 15 (updated)
+```
+
+#### No Updates Provided
+
+If you run `config` without any update flags:
+
+```bash
+roza config
+```
+
+**Output:**
+```
+No config updates provided. Use `ramadan-cli config --show` to inspect.
+```
+
+### Validation Errors
+
+The config command validates all inputs:
+
+<CodeGroup>
+
+```bash Invalid Latitude
+$ roza config --latitude 100
+Error: Invalid latitude.
+```
+
+```bash Invalid Method
+$ roza config --method 99
+Error: Invalid method.
+```
+
+```bash Invalid School
+$ roza config --school 5
+Error: Invalid school.
+```
+
+</CodeGroup>
+
+### Examples
+
+<Tabs>
+  <Tab title="Complete Setup">
+    ```bash
+    # Configure everything at once
+    roza config \
+      --city "San Francisco" \
+      --country "United States" \
+      --latitude 37.7749 \
+      --longitude -122.4194 \
+      --method 2 \
+      --school 0 \
+      --timezone "America/Los_Angeles"
+    ```
+  </Tab>
+  <Tab title="Update Location">
+    ```bash
+    # Just update your city
+    roza config --city "Vancouver" --country "Canada"
+    ```
+  </Tab>
+  <Tab title="Update Method">
+    ```bash
+    # Change calculation method
+    roza config --method 1
+    ```
+  </Tab>
+  <Tab title="View & Clear">
+    ```bash
+    # Check current settings
+    roza config --show
+    
+    # Start fresh
+    roza config --clear
+    ```
+  </Tab>
+</Tabs>
+
+### Comparison: Interactive vs Config Command
+
+| Feature | First-Run Interactive | `config` Command |
+|---------|----------------------|------------------|
+| **Prompts** | Yes, uses Clack prompts | No prompts |
+| **When** | First run (TTY only) | Anytime |
+| **Input** | Interactive selections | Command-line flags |
+| **Use Case** | Initial setup | Scripts, updates, automation |
+| **Location Detection** | Offers auto-detect | Must provide values |
+| **Recommendations** | Suggests method/school | You set explicitly |
+
+<Tip>
+Use interactive setup for first-time configuration. Use `config` command for scripted setups or quick updates.
+</Tip>
+
+### Environment Variable
+
+Control where config is stored:
+
+```bash
+export RAMADAN_CLI_CONFIG_DIR="/custom/path"
+roza config --show
+```
+
+Useful for:
+- Testing with isolated configs
+- Agent skill packages
+- Multiple user profiles
+
+---
+
+## Command Summary
+
+| Command | Purpose | Interactive |
+|---------|---------|-------------|
+| `roza` | Show Sehar/Iftar timings | Yes (first run) |
+| `roza reset` | Clear all configuration | No |
+| `roza config` | Manage config non-interactively | No |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Flags and Options" icon="flag" href="/usage/flags-and-options">
+    Complete reference of all command-line flags
+  </Card>
+  <Card title="Configuration" icon="gear" href="/usage/configuration">
+    Learn about interactive setup and config management
+  </Card>
+</CardGroup>

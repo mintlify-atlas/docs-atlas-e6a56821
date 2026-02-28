@@ -1,0 +1,439 @@
+---
+title: "Output Modes"
+description: "Table, plain text, JSON, and status line output formats for different use cases"
+---
+
+Ramadan CLI offers multiple output modes designed for different use cases, from human-readable terminal output to machine-parsable JSON for scripts and agents.
+
+## Default Mode: Rich Terminal Output
+
+Without any output flags, you get a beautifully formatted terminal display:
+
+```bash
+roza
+```
+
+```
+  ██████   █████  ███    ███  █████  ██████   █████  ███    ██ 
+  ██   ██ ██   ██ ████  ████ ██   ██ ██   ██ ██   ██ ████   ██ 
+  ██████  ███████ ██ ████ ██ ███████ ██   ██ ███████ ██ ██  ██ 
+  ██   ██ ██   ██ ██  ██  ██ ██   ██ ██   ██ ██   ██ ██  ██ ██ 
+  ██   ██ ██   ██ ██      ██ ██   ██ ██████  ██   ██ ██   ████ 
+
+  Today Sehar/Iftar
+  📍 San Francisco, United States
+
+  Roza  Sehar     Iftar     Date            Hijri
+  --------------------------------------------------------------
+  15    5:42 AM   7:23 PM   15-03-2026      15 Ramadan 1447 ← current
+
+  Status: Roza in progress
+  Up next: Iftar in 3h 45m
+
+  Sehar uses Fajr. Iftar uses Maghrib.
+```
+
+This mode includes:
+- ASCII art banner
+- Color-coded output (green for Ramadan branding)
+- Current status with countdown timer
+- Row annotations (← current, ← next)
+- Footer note explaining time semantics
+
+## Plain Text Mode
+
+Use `--plain` or `-p` to remove the ASCII banner while keeping the formatted table:
+
+```bash
+roza --plain
+roza -p
+```
+
+```
+RAMADAN CLI
+  Today Sehar/Iftar
+  📍 Lahore, Pakistan
+
+  Roza  Sehar     Iftar     Date            Hijri
+  --------------------------------------------------------------
+  12    4:58 AM   6:17 PM   11-03-2026      12 Ramadan 1447 ← current
+
+  Status: Roza in progress
+  Up next: Iftar in 2h 15m
+
+  Sehar uses Fajr. Iftar uses Maghrib.
+```
+
+<Info>
+  Plain mode is useful when:
+  - Running in environments where ASCII art doesn't render well
+  - You want cleaner, more compact output
+  - Integrating with tools that parse terminal output
+</Info>
+
+## JSON Mode
+
+Use `--json` or `-j` to get structured JSON output for scripts and automation:
+
+```bash
+roza --json
+roza -j
+```
+
+### Success Response
+
+```json
+{
+  "mode": "today",
+  "location": "San Francisco, United States",
+  "hijriYear": 1447,
+  "rows": [
+    {
+      "roza": 15,
+      "sehar": "5:42 AM",
+      "iftar": "7:23 PM",
+      "date": "15-03-2026",
+      "hijri": "15 Ramadan 1447"
+    }
+  ]
+}
+```
+
+### JSON Mode Values
+
+The `mode` field indicates what data is being returned:
+
+| Mode | Description | When Used |
+|------|-------------|----------|
+| `today` | Single day (current or first) | Default run without flags |
+| `all` | Full 30-day calendar | When using `--all` flag |
+| `number` | Specific roza day | When using `--number <1-30>` flag |
+
+### Full Calendar JSON
+
+```bash
+roza "Dubai, UAE" --all --json
+```
+
+```json
+{
+  "mode": "all",
+  "location": "Dubai, United Arab Emirates",
+  "hijriYear": 1447,
+  "rows": [
+    {
+      "roza": 1,
+      "sehar": "5:03 AM",
+      "iftar": "6:22 PM",
+      "date": "28-02-2026",
+      "hijri": "1 Ramadan 1447"
+    },
+    {
+      "roza": 2,
+      "sehar": "5:02 AM",
+      "iftar": "6:23 PM",
+      "date": "01-03-2026",
+      "hijri": "2 Ramadan 1447"
+    }
+    // ... 28 more days
+  ]
+}
+```
+
+### Error Response
+
+When an error occurs in JSON mode, the error is written to `stderr`:
+
+```bash
+roza --json --first-roza-date invalid-date 2>&1
+```
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "INVALID_FIRST_ROZA_DATE",
+    "message": "Invalid first roza date. Use YYYY-MM-DD."
+  }
+}
+```
+
+### Error Codes
+
+JSON errors include standardized error codes:
+
+| Code | Description |
+|------|-------------|
+| `INVALID_FIRST_ROZA_DATE` | First roza date is not in YYYY-MM-DD format |
+| `INVALID_FLAG_COMBINATION` | Conflicting flags (e.g., `--all` with `--number`) |
+| `PRAYER_TIMES_FETCH_FAILED` | Failed to fetch prayer times from API |
+| `RAMADAN_CALENDAR_FETCH_FAILED` | Failed to fetch Ramadan calendar |
+| `LOCATION_DETECTION_FAILED` | Could not detect location |
+| `ROZA_NOT_FOUND` | Specified roza number not found |
+| `RAMADAN_CLI_ERROR` | General CLI error |
+| `UNKNOWN_ERROR` | Unexpected error |
+
+<Note>
+  Exit codes: `0` for success, `1` for any error condition
+</Note>
+
+## Status Line Mode
+
+Use `--status` or `-s` for a single-line output showing the next event. Perfect for status bars, shell prompts, and coding agents:
+
+```bash
+roza --status
+roza -s
+```
+
+### Example Outputs
+
+**Before Sehar:**
+```
+Sehar in 5h 23m
+```
+
+**During Sehar window:**
+```
+Fast starts in 45m
+```
+
+**During fasting:**
+```
+Iftar in 6h 12m
+```
+
+**After Iftar:**
+```
+Sehar in 9h 8m
+```
+
+**Before Ramadan:**
+```
+Sehar in 15d 8h 25m
+```
+
+### Status Line Logic
+
+The status line is generated by the `getHighlightState()` function:
+
+```typescript
+const getHighlightState = (day: PrayerData): HighlightState | null => {
+  // Calculates current state and countdown based on:
+  // - Current time in the location's timezone
+  // - Sehar time (Fajr)
+  // - Iftar time (Maghrib)
+  // - Current date vs roza date
+};
+```
+
+The countdown format:
+- Hours and minutes: `6h 12m`
+- Minutes only (under 1 hour): `45m`
+- Days, hours, minutes: `15d 8h 25m`
+
+### Status Line with City
+
+```bash
+roza -s --city "London"
+roza -s "Karachi, Pakistan"
+```
+
+### Use Cases for Status Line
+
+<Tabs>
+  <Tab title="Shell Prompt">
+    Add Ramadan countdown to your shell prompt:
+    
+    ```bash
+    # In your .bashrc or .zshrc
+    export PS1="$(roza -s) $ "
+    ```
+  </Tab>
+  
+  <Tab title="Tmux Status Bar">
+    Show next event in tmux:
+    
+    ```bash
+    # In .tmux.conf
+    set -g status-right "#(roza -s)"
+    ```
+  </Tab>
+  
+  <Tab title="Waybar/Polybar">
+    Display in your desktop status bar:
+    
+    ```json
+    {
+      "custom/ramadan": {
+        "exec": "roza -s",
+        "interval": 60
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="AI Agents">
+    Agents can check status without verbose output:
+    
+    ```bash
+    # Agent checks Ramadan status
+    STATUS=$(roza -s)
+    echo "Current: $STATUS"
+    ```
+  </Tab>
+</Tabs>
+
+### Silent Failures
+
+Status mode fails silently (no output) if:
+- Location cannot be detected
+- API request fails
+- No configuration exists and interactive setup is skipped
+
+<Info>
+  This prevents status bars from showing error messages. Use `roza` without flags to diagnose issues.
+</Info>
+
+## JSON Mode Behavior
+
+### Non-Interactive
+
+When using `--json`, the CLI skips interactive setup:
+
+```typescript
+const query = await resolveQuery({
+  city: opts.city,
+  allowInteractiveSetup: !opts.json, // No prompts in JSON mode
+});
+```
+
+If no configuration exists, it attempts automatic location detection.
+
+### I/O Streams
+
+```bash
+# Success output goes to stdout
+roza --json > ramadan.json
+
+# Error output goes to stderr
+roza --json --first-roza-date bad 2> error.json
+
+# Capture both
+roza --json > data.json 2> error.json
+```
+
+## Combining Output Modes with Other Flags
+
+### Plain + All
+
+```bash
+roza --plain --all
+```
+
+Clean table output with all 30 days.
+
+### JSON + Number
+
+```bash
+roza --json --number 27
+```
+
+```json
+{
+  "mode": "number",
+  "location": "Istanbul, Turkey",
+  "hijriYear": 1447,
+  "rows": [
+    {
+      "roza": 27,
+      "sehar": "4:15 AM",
+      "iftar": "6:55 PM",
+      "date": "26-03-2026",
+      "hijri": "27 Ramadan 1447"
+    }
+  ]
+}
+```
+
+### JSON + City + Custom Date
+
+```bash
+roza --json "Mecca, Saudi Arabia" --first-roza-date 2026-03-01 --all
+```
+
+Get structured data for a specific city with custom Ramadan dates.
+
+## Output Mode Precedence
+
+You cannot combine certain output modes:
+
+```bash
+roza --json --status
+# ⚠️ --json takes precedence
+
+roza --plain --status
+# ⚠️ --status takes precedence (single line, no table)
+```
+
+<Warning>
+  Only use one output mode flag at a time: `--json`, `--status`, or `--plain`. If multiple are provided, the behavior is:
+  1. `--status` (highest priority)
+  2. `--json`
+  3. `--plain`
+</Warning>
+
+## Color Output
+
+Default and plain modes use terminal colors:
+
+- **Green** (`ramadanGreen`): Headers, status labels
+- **Yellow**: Countdown times, "next" annotations
+- **White**: Data values
+- **Dim/Gray**: Table borders, footer notes
+
+Colors are defined in `src/ui/theme.ts`:
+
+```typescript
+export const ramadanGreen = (text: string): string => pc.hex('#81F096')(text);
+```
+
+JSON and status modes never include color codes.
+
+## Practical Examples
+
+### Script Integration
+
+```bash
+#!/bin/bash
+# Check if it's time for Iftar
+
+DATA=$(roza --json)
+MODE=$(echo $DATA | jq -r '.mode')
+
+if [ "$MODE" = "today" ]; then
+  IFTAR=$(echo $DATA | jq -r '.rows[0].iftar')
+  echo "Today's Iftar: $IFTAR"
+fi
+```
+
+### Desktop Notification
+
+```bash
+# Send notification with next event
+STATUS=$(roza -s)
+notify-send "Ramadan" "$STATUS"
+```
+
+### CSV Export
+
+```bash
+# Convert JSON to CSV
+roza --all --json | jq -r '.rows[] | [.roza, .sehar, .iftar, .date, .hijri] | @csv' > ramadan.csv
+```
+
+## Related Features
+
+- [Ramadan Calendar](/features/ramadan-calendar) - View full month or specific days
+- [Location Detection](/features/location-detection) - How location affects output
+- [Custom First Roza](/features/custom-first-roza) - Using custom dates with different outputs
